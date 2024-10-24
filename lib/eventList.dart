@@ -14,29 +14,29 @@ class eventList extends StatelessWidget {
         isDarkMode: isDarkMode,
         actions: [
           PopupMenuButton<String>(
-            icon: Icon(Icons.filter_list, color: myAppColors.darkBlack),
+            icon: const Icon(Icons.filter_list, color: myAppColors.darkBlack),
             onSelected: (String value) {
               // Handle filter selection
             },
             itemBuilder: (BuildContext context) {
               return [
-                PopupMenuItem<String>(
+                const PopupMenuItem<String>(
                   value: 'name',
                   child: Text('Sort by Name'),
                 ),
-                PopupMenuItem<String>(
+                const PopupMenuItem<String>(
                   value: 'category',
                   child: Text('Sort by Category'),
                 ),
-                PopupMenuItem<String>(
+                const PopupMenuItem<String>(
                   value: 'current',
                   child: Text('Current Events'),
                 ),
-                PopupMenuItem<String>(
+                const PopupMenuItem<String>(
                   value: 'past',
                   child: Text('Past Events'),
                 ),
-                PopupMenuItem<String>(
+                const PopupMenuItem<String>(
                   value: 'upcoming',
                   child: Text('Upcoming Events'),
                 ),
@@ -47,20 +47,20 @@ class eventList extends StatelessWidget {
       ),
       body: Column(
         children: [
-          Padding(padding: EdgeInsets.only(top: 10.0)),
+          const Padding(padding: EdgeInsets.only(top: 10.0)),
           Expanded(
             child: ListView.builder(
               itemCount: 5,  // Replace with actual event list count
               itemBuilder: (context, index) {
                 return Card(
-                  margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                  margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                   elevation: 4.0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.0),
                   ),
                   child: ListTile(
                     title: Text('Event Name $index'),
-                    subtitle: Text('Event Date: 2024-12-01', style: TextStyle(color: myAppColors.correctColor)),
+                    subtitle: const Text('Event Date: 2024-12-01', style: TextStyle(color: myAppColors.correctColor)),
                     onTap: () {
                       // Navigate to gift list for this event
                     },
@@ -76,7 +76,7 @@ class eventList extends StatelessWidget {
           // Navigate to add a new event
         },
         backgroundColor: myAppColors.primColor, // Primary color for the button
-        child: Icon(
+        child: const Icon(
           Icons.add, // Add icon to represent adding an event
          // color: myAppColors.secondaryColor, // Icon color from your palette
         ),

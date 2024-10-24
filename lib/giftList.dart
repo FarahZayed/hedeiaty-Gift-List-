@@ -1,20 +1,98 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/appBar.dart';
+import 'package:hedieaty/giftDetails.dart';
 
 class giftList extends StatefulWidget {
+  const giftList({super.key});
+
   @override
   _giftListPageState createState() => _giftListPageState();
 }
 
 class _giftListPageState extends State<giftList> {
   List<Map<String, dynamic>> gifts = [
-    {'name': 'Smartphone', 'category': 'Electronics', 'status': 'available', 'event': 'birthday'},
-    {'name': 'Book', 'category': 'Books', 'status': 'pledged', 'event': 'wedding'},
-    {'name': 'Headphones', 'category': 'Electronics', 'status': 'available', 'event': 'birthday'},
-    {'name': 'T-shirt', 'category': 'Clothing', 'status': 'pledged', 'event': 'graduation'},
+    {
+      'name': 'Smartphone',
+      'category': 'Electronics',
+      'description': 'A high-end smartphone with the latest features.',
+      'price': 12.5,
+      'status': 'available',
+      'event': 'birthday',
+    },
+    {
+      'name': 'Book',
+      'category': 'Books',
+      'description': 'A captivating novel that will keep you engaged.',
+      'price': 50.0,
+      'status': 'pledged',
+      'event': 'wedding',
+    },
+    {
+      'name': 'Headphones',
+      'category': 'Electronics',
+      'description': 'Wireless headphones with noise cancellation.',
+      'price': 60.3,
+      'status': 'available',
+      'event': 'birthday',
+    },
+    {
+      'name': 'T-shirt',
+      'category': 'Clothing',
+      'description': 'A stylish and comfortable t-shirt.',
+      'price': 55.0,
+      'status': 'pledged',
+      'event': 'graduation',
+    },
+    {
+      'name': 'Tablet',
+      'category': 'Electronics',
+      'description': 'A versatile tablet for work and entertainment.',
+      'price': 200.0,
+      'status': 'available',
+      'event': 'anniversary',
+    },
+    {
+      'name': 'Coffee Maker',
+      'category': 'Kitchen',
+      'description': 'A programmable coffee maker for your daily caffeine fix.',
+      'price': 75.0,
+      'status': 'pledged',
+      'event': 'housewarming',
+    },
+    {
+      'name': 'Backpack',
+      'category': 'Travel',
+      'description': 'A durable backpack for all your adventures.',
+      'price': 80.0,
+      'status': 'available',
+      'event': 'travel',
+    },
+    {
+      'name': 'Watch',
+      'category': 'Accessories',
+      'description': 'A classic watch with a timeless design.',
+      'price': 150.0,
+      'status': 'pledged',
+      'event': 'birthday',
+    },
+    {
+      'name': 'Board Game',
+      'category': 'Games',
+      'description': 'A fun board game for the whole family.',
+      'price': 35.0,
+      'status': 'available',
+      'event': 'christmas',
+    },
+    {
+      'name': 'Gift Card',
+      'category': 'Other',
+      'description': 'A gift card for their favorite store.',
+      'price': 25.0,
+      'status': 'pledged',
+      'event': 'birthday',
+    },
   ];
-
   String sortOption = '';
 
   void sortGifts(String option) {
@@ -30,24 +108,30 @@ class _giftListPageState extends State<giftList> {
     });
   }
 
-  void addGift(String name, String category, String event) {
+  void addGift(String name, String category, String description, double price, String status, String? imagePath, String event) {
     setState(() {
       gifts.add({
         'name': name,
         'category': category,
-        'status': 'available',
-        'event': event,
+        'description': description,
+        'price': price,
+        'status': status,
+        'image': imagePath,
+        'event': event
       });
     });
   }
 
-  void editGift(int index, String newName, String newCategory, String newEvent) {
+  void editGift(int index, String newName, String newCategory, String newDescription, double newPrice, String newStatus, String? newImagePath, String event) {
     setState(() {
       gifts[index] = {
         'name': newName,
         'category': newCategory,
-        'status': 'available',
-        'event': newEvent,  // Ensure event is updated
+        'description': newDescription,
+        'price': newPrice,
+        'status': newStatus,
+        'image': newImagePath,
+        'event': event
       };
     });
   }
@@ -57,6 +141,28 @@ class _giftListPageState extends State<giftList> {
       gifts.removeAt(index);
     });
   }
+
+  void navigateToGiftDetails({Map<String, dynamic>? gift}) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GiftDetailsPage(gift: gift),
+      ),
+    );
+
+    if (result != null) {
+      if (gift != null) {
+        // Edit existing gift
+        int index = gifts.indexOf(gift);
+        editGift(index, result['name'], result['category'], result['description'], result['price'], result['status'], result['image'],result['event']);
+      } else {
+        // Add new gift
+        addGift(result['name'], result['category'], result['description'], result['price'], result['status'], result['image'],result['event']);
+      }
+    }
+  }
+
+
 
 
   @override
@@ -68,19 +174,19 @@ class _giftListPageState extends State<giftList> {
         isDarkMode: isDarkMode,
         actions: [
           PopupMenuButton<String>(
-            icon: Icon(Icons.filter_list, color: myAppColors.darkBlack),
+            icon: const Icon(Icons.filter_list, color: myAppColors.darkBlack),
             onSelected: sortGifts,
             itemBuilder: (BuildContext context) {
               return [
-                PopupMenuItem<String>(
+                const PopupMenuItem<String>(
                   value: 'name',
                   child: Text('Sort by Name'),
                 ),
-                PopupMenuItem<String>(
+                const PopupMenuItem<String>(
                   value: 'category',
                   child: Text('Sort by Category'),
                 ),
-                PopupMenuItem<String>(
+                const PopupMenuItem<String>(
                   value: 'status',
                   child: Text('Sort by Status'),
                 ),
@@ -100,59 +206,19 @@ class _giftListPageState extends State<giftList> {
 
                 return Card(
                   color: isPledged ? Colors.red[100] : Colors.green[100], // Color-coded based on pledge status
-                  margin: EdgeInsets.symmetric(vertical: 5.0, horizontal: 10.0),
+                  margin: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 10.0),
 
                   child: ListTile(
-                    title: Text(gift['name'], style: TextStyle(color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack)),
-                    subtitle: Text(gift['event'] ?? 'No event', style: TextStyle(color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack)),
+                    title: Text(gift['name'], style: TextStyle(color: myAppColors.darkBlack )),
+                    subtitle: Text(gift['event'] ?? 'No event', style: TextStyle(color: myAppColors.darkBlack )),
                     trailing: IconButton(
-                      icon: Icon(Icons.delete, color: myAppColors.primColor),
+                      icon: const Icon(Icons.delete, color: myAppColors.primColor),
                       onPressed: () => deleteGift(index),
                     ),
                     onTap: () {
-                      if (!isPledged) {
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            TextEditingController nameController = TextEditingController(text: gift['name']);
-                            TextEditingController categoryController = TextEditingController(text: gift['category']);
-                            TextEditingController eventController = TextEditingController(text: gift['event']);
-
-                            return AlertDialog(
-                              title: Text(
-                                'Edit Gift ${gift["name"]}',
-                                style: TextStyle(color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack),
-                              ),
-                              content: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  TextField(
-                                    controller: nameController,
-                                    decoration: InputDecoration(labelText: 'Gift Name',labelStyle:TextStyle(color:isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack )),
-                                  ),
-                                  TextField(
-                                    controller: categoryController,
-                                    decoration: InputDecoration(labelText: 'Category',labelStyle:TextStyle(color:isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack)),
-                                  ),
-                                  TextField(
-                                    controller: eventController,
-                                    decoration: InputDecoration(labelText: 'Event',labelStyle:TextStyle(color:isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack)),
-                                  ),
-                                ],
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    editGift(index, nameController.text, categoryController.text, eventController.text);
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: Text('Save'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      }
+                        if (!isPledged) {
+                          navigateToGiftDetails(gift: gift);
+                        }
                     },
                   ),
                 );
@@ -163,49 +229,11 @@ class _giftListPageState extends State<giftList> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          showDialog(
-            context: context,
-            builder: (context) {
-              TextEditingController nameController = TextEditingController();
-              TextEditingController categoryController = TextEditingController();
-              TextEditingController eventController = TextEditingController();
-
-              return AlertDialog(
-                title: Text('Add New Gift'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(labelText: 'Gift Name'),
-                    ),
-                    TextField(
-                      controller: categoryController,
-                      decoration: InputDecoration(labelText: 'Category'),
-                    ),
-                    TextField(
-                      controller: eventController,
-                      decoration: InputDecoration(labelText: 'Event'),
-                    ),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      addGift(nameController.text, categoryController.text, eventController.text);  // Pass the event as well
-                      Navigator.of(context).pop();
-                    },
-                    child: Text('Add'),
-                  ),
-                ],
-              );
-            },
-          );
+          navigateToGiftDetails();
         },
         backgroundColor: myAppColors.primColor, // Primary color for the button
-        child: Icon(
-          Icons.add, // Add icon to represent adding an event
-          // color: myAppColors.secondaryColor, // Icon color from your palette
+        child: const Icon(
+          Icons.add,
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,

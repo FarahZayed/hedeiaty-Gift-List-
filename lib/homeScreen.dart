@@ -5,7 +5,7 @@ import 'package:hedieaty/appBar.dart';
 class HomeScreen extends StatefulWidget {
   final ValueChanged<ThemeMode> onThemeToggle;
 
-  HomeScreen({required this.onThemeToggle});
+  const HomeScreen({super.key, required this.onThemeToggle});
 
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -39,15 +39,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: myAppColors.secondaryColor,
                     foregroundColor: isDarkMode ? myAppColors.darkBlack : myAppColors.lightWhite,
-                    padding: EdgeInsets.symmetric(vertical: 16.0),
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     elevation: 10.0,
                     shadowColor: myAppColors.secondaryColor.withOpacity(1.0),
                   ),
-                  icon: Icon(Icons.add), // Icon indicating adding an event
-                  label: Text(
+                  icon: const Icon(Icons.add), // Icon indicating adding an event
+                  label: const Text(
                     'Add Event ',
                     style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                   ),
@@ -61,14 +61,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       showSearchField = !showSearchField;
                     });
                   },
-                  icon: Icon(Icons.search),
+                  icon: const Icon(Icons.search),
                   color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
                 ),
               ),
             ],
           ),
           if (showSearchField)
-            Padding(
+            const Padding(
               padding: EdgeInsets.all(8.0),
               child: TextField(
                 decoration: InputDecoration(
@@ -99,23 +99,23 @@ class _HomeScreenState extends State<HomeScreen> {
               itemCount: 10,  // Replace with actual friends list count
               itemBuilder: (context, index) {
                 return Card(
-                  margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                  margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                   elevation: 4.0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.0),
                   ),
                   child: ListTile(
-                    leading: CircleAvatar(
+                    leading: const CircleAvatar(
                       backgroundImage: AssetImage('asset/profile.png'),  // Example profile image
                     ),
                     title: Text(
                       'Friend Name $index',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18.0,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    subtitle: Text(
+                    subtitle: const Text(
                       'Upcoming Events: 1',
                       style: TextStyle(
                         color: myAppColors.correctColor,
@@ -137,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // Navigate to add a new event
         },
         backgroundColor: myAppColors.primColor, // Primary color for the button
-        child: Icon(
+        child: const Icon(
           Icons.add, // Add icon to represent adding an event
           //color: myAppColors.secondaryColor, // Icon color from your palette
         ),
