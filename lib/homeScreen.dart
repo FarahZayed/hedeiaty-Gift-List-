@@ -33,8 +33,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    // Navigate to create a new event or gift list
+                  onPressed: () async{
+                    await Navigator.pushNamed(context, "/eventList");
+
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: myAppColors.secondaryColor,

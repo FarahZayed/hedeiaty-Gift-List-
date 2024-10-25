@@ -113,8 +113,11 @@ class _loginPageState extends State<loginPage> {
                       const SizedBox(height: 24.0),
                       // Login Button
                       ElevatedButton(
-                        onPressed: () {
-                          // Implement your login logic here
+                        onPressed: ()async {
+                          // Go to DB to check the credentials
+                          await Navigator.pushReplacementNamed(
+                            context,"/home"
+                          );
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: myAppColors.primColor,  // Background color for the button

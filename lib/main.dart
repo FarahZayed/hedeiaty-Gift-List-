@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/colors.dart';
+import 'package:hedieaty/eventList.dart';
 
 
 //TO BE CHANGED
@@ -35,6 +36,12 @@ class _MyAppState extends State<MyApp> {
       themeMode: _themeMode,
       //home:  HomeScreen(onThemeToggle: _toggleTheme),
        home:const loginPage(),
+      routes: {
+        "/home":(context)=>HomeScreen(onThemeToggle: _toggleTheme),
+        "/eventList":(context)=>eventList(),
+        "/giftList":(context)=>giftList(),
+
+      },
 
     );
   }
