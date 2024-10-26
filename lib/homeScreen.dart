@@ -25,6 +25,85 @@ class _HomeScreenState extends State<HomeScreen> {
         isDarkMode: isDarkMode,
         onThemeToggle: () => widget.onThemeToggle(isDarkMode ? ThemeMode.light : ThemeMode.dark),
       ),
+      drawer: Drawer(
+        child: Container(
+          color: isDarkMode ? myAppColors.darkBlack : myAppColors.lightWhite,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 70.0),
+                child: DrawerHeader(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        myAppColors.primColor,
+                        myAppColors.secondaryColor,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const CircleAvatar(
+                          radius: 35.0,
+                          backgroundImage: AssetImage('asset/profile.png'), // Example profile image
+                        ),
+                        const SizedBox(height: 10.0),
+                        Text(
+                          //will fetch it later when he logs in
+                          "User Name",
+                          style: TextStyle(
+                            color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          //will fetch it later when he logs in
+                          "user.email@example.com",
+                          style: TextStyle(
+                            color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
+                            fontSize: 14.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              ListTile(
+                leading: Icon(Icons.person, color: myAppColors.primColor),
+                title: Text('Profile'),
+                onTap: () {
+                  Navigator.pushNamed(context, "/profile");
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.card_giftcard, color: myAppColors.primColor),
+                title:  Text('MY gift List'),
+                onTap: () {
+                  Navigator.pushNamed(context, "/giftList");
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.event, color: myAppColors.primColor),
+                title:  Text('My Events'),
+                onTap: () {
+                  Navigator.pushNamed(context, "/eventList");
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.card_giftcard_outlined, color: myAppColors.primColor,),
+                title: Text("My pledged Gifts"),
+                onTap: () => Navigator.pushNamed(context,"/pledgedGifts"),
+              )
+            ],
+          ),
+        ),
+      ),
       body: Column(
         children: [
           Row(
@@ -133,15 +212,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // Navigate to add a new event
         },
-        backgroundColor: myAppColors.primColor, // Primary color for the button
-        child: const Icon(
-          Icons.add, // Add icon to represent adding an event
-          //color: myAppColors.secondaryColor, // Icon color from your palette
-        ),
+        backgroundColor: myAppColors.primColor,
+        child: const Icon(Icons.add),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );

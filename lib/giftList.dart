@@ -205,9 +205,9 @@ class _giftListPageState extends State<giftList> {
                 bool isPledged = gift['status'] == 'pledged';
 
                 return Card(
-                  color: isPledged ? Colors.red[100] : Colors.green[100], // Color-coded based on pledge status
+                  color: isPledged ? Colors.red[100] : Colors.green[100],
                   margin: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 10.0),
-
+                  elevation: 15.0,
                   child: ListTile(
                     title: Text(gift['name'], style: TextStyle(color: myAppColors.darkBlack )),
                     subtitle: Text(gift['event'] ?? 'No event', style: TextStyle(color: myAppColors.darkBlack )),

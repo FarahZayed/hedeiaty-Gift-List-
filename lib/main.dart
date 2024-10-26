@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/colors.dart';
+//pages
 import 'package:hedieaty/eventList.dart';
-
-
-//TO BE CHANGED
 import 'package:hedieaty/homeScreen.dart';
 import 'package:hedieaty/giftList.dart';
 import 'package:hedieaty/login.dart';
+import 'package:hedieaty/profile.dart';
+import 'package:hedieaty/pledgedGifts.dart';
 
 void main() {
   runApp(const MyApp());
@@ -40,6 +40,8 @@ class _MyAppState extends State<MyApp> {
         "/home":(context)=>HomeScreen(onThemeToggle: _toggleTheme),
         "/eventList":(context)=>eventList(),
         "/giftList":(context)=>giftList(),
+        "/profile":(context)=>profilePage(),
+        "/pledgedGifts":(context)=>pledgedGiftsPage(),
 
       },
 
