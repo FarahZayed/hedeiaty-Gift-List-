@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
 import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/appBar.dart';
+import 'package:hedieaty/manageEvents.dart';
 
 class eventList extends StatefulWidget {
 
@@ -50,7 +53,7 @@ class _eventListState extends State<eventList> {
     },
     {
       'name': 'Holiday Celebration',
-      'date': DateTime.now().add(Duration(days: 2)), // Current date + 2 days
+      'date': DateTime.now().add(Duration(days: 2)),
       'category': 'Festive',
       'status': 'Current',
     },
@@ -89,24 +92,24 @@ class _eventListState extends State<eventList> {
     });
   }
 
-  void addEvent(String name, String category, String status) {
+  void addEvent(String name, String category, String status,DateTime date) {
     setState(() {
       events.add({
         'name': name,
         'category': category,
-
         'status': status,
+        'date':date
       });
     });
   }
 
-  void editEvent(int index, String newName, String newCategory,  String newStatus, ) {
+  void editEvent(int index, String newName, String newCategory,  String newStatus, DateTime newDate ) {
     setState(() {
       events[index] = {
         'name': newName,
         'category': newCategory,
         'status': newStatus,
-
+        'date':newDate
       };
     });
   }
@@ -116,51 +119,70 @@ class _eventListState extends State<eventList> {
       events.removeAt(index);
     });
   }
-  void showEditDialog(int index) {
-    TextEditingController nameController = TextEditingController(text: events[index]['name']);
-    TextEditingController categoryController = TextEditingController(text: events[index]['category']);
-    TextEditingController statusController = TextEditingController(text: events[index]['status']);
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Edit Event'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: 'Name'),
-              ),
-              TextField(
-                controller: categoryController,
-                decoration: InputDecoration(labelText: 'Category'),
-              ),
-              TextField(
-                controller: statusController,
-                decoration: InputDecoration(labelText: 'Status'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                editEvent(index, nameController.text, categoryController.text, statusController.text);
-                Navigator.of(context).pop();
-              },
-              child: Text('Save'),
-            ),
-          ],
-        );
-      },
+  // void showEditDialog(int index) {
+  //   TextEditingController nameController = TextEditingController(text: events[index]['name']);
+  //   TextEditingController categoryController = TextEditingController(text: events[index]['category']);
+  //   TextEditingController statusController = TextEditingController(text: events[index]['status']);
+  //
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(
+  //         title: Text('Edit Event'),
+  //         content: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           children: [
+  //             TextField(
+  //               controller: nameController,
+  //               decoration: InputDecoration(labelText: 'Name'),
+  //             ),
+  //             TextField(
+  //               controller: categoryController,
+  //               decoration: InputDecoration(labelText: 'Category'),
+  //             ),
+  //             TextField(
+  //               controller: statusController,
+  //               decoration: InputDecoration(labelText: 'Status'),
+  //             ),
+  //           ],
+  //         ),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () {
+  //               Navigator.of(context).pop();
+  //             },
+  //             child: Text('Cancel'),
+  //           ),
+  //           TextButton(
+  //             onPressed: () {
+  //               editEvent(index, nameController.text, categoryController.text, statusController.text,date);
+  //               Navigator.of(context).pop();
+  //             },
+  //             child: Text('Save'),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  // }
+  void goToEditEvents({Map<String, dynamic>? event}) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => mangeEventsPage(event: event),
+      ),
     );
+
+    if (result != null) {
+      if (event != null) {
+
+        int index = events.indexOf(event);
+        editEvent(index, result['name'], result['category'], result['status'],result['date']);
+      } else {
+
+        addEvent(result['name'], result['category'], result['status'], result['date']);
+      }
+    }
   }
 
 
@@ -209,7 +231,7 @@ class _eventListState extends State<eventList> {
           const Padding(padding: EdgeInsets.only(top: 10.0)),
           Expanded(
             child: ListView.builder(
-              itemCount: events.length,  // Replace with actual event list count
+              itemCount: events.length,
               itemBuilder: (context, index) {
                 var event = events[index];
                 return Card(
@@ -220,9 +242,9 @@ class _eventListState extends State<eventList> {
                   ),
                   child: ListTile(
                     title: Text(event['name']),
-                    subtitle: Text(event['date'].toString(), style: TextStyle(color: myAppColors.correctColor)),
+                    subtitle: Text(DateFormat('yyyy-MM-dd').format(event['date']), style: TextStyle(color: myAppColors.correctColor)),
                     onTap: () {
-                      showEditDialog(index);
+                      goToEditEvents(event: event);
                     },
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: myAppColors.primColor),
@@ -237,13 +259,12 @@ class _eventListState extends State<eventList> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Navigate to add a new event
-
+          goToEditEvents();
         },
-        backgroundColor: myAppColors.primColor, // Primary color for the button
+        backgroundColor: myAppColors.secondaryColor.withOpacity(0.7),
         child: const Icon(
-          Icons.add, // Add icon to represent adding an event
-         // color: myAppColors.secondaryColor, // Icon color from your palette
+          Icons.add,
+
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,

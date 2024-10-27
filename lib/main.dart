@@ -7,6 +7,8 @@ import 'package:hedieaty/giftList.dart';
 import 'package:hedieaty/login.dart';
 import 'package:hedieaty/profile.dart';
 import 'package:hedieaty/pledgedGifts.dart';
+import 'package:hedieaty/friendGiftList.dart';
+import 'package:hedieaty/manageEvents.dart';
 
 void main() {
   runApp(const MyApp());
@@ -42,6 +44,8 @@ class _MyAppState extends State<MyApp> {
         "/giftList":(context)=>giftList(),
         "/profile":(context)=>profilePage(),
         "/pledgedGifts":(context)=>pledgedGiftsPage(),
+        "/friendGiftPage":(context)=>friendGiftPage(friendName: ModalRoute.of(context)?.settings.arguments as String),
+        "/mangeEventsPage":(context)=> mangeEventsPage(),
 
       },
 

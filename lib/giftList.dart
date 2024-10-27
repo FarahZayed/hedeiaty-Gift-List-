@@ -152,11 +152,11 @@ class _giftListPageState extends State<giftList> {
 
     if (result != null) {
       if (gift != null) {
-        // Edit existing gift
+
         int index = gifts.indexOf(gift);
         editGift(index, result['name'], result['category'], result['description'], result['price'], result['status'], result['image'],result['event']);
       } else {
-        // Add new gift
+
         addGift(result['name'], result['category'], result['description'], result['price'], result['status'], result['image'],result['event']);
       }
     }
@@ -205,12 +205,22 @@ class _giftListPageState extends State<giftList> {
                 bool isPledged = gift['status'] == 'pledged';
 
                 return Card(
-                  color: isPledged ? Colors.red[100] : Colors.green[100],
+                  color: isPledged ? myAppColors.wrongColor.withOpacity(0.4) : (isDarkMode?Colors.black: myAppColors.lightWhite),
                   margin: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 10.0),
                   elevation: 15.0,
                   child: ListTile(
-                    title: Text(gift['name'], style: TextStyle(color: myAppColors.darkBlack )),
-                    subtitle: Text(gift['event'] ?? 'No event', style: TextStyle(color: myAppColors.darkBlack )),
+                    title: Text(gift['name'], style: TextStyle(
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.bold,
+                      color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
+                      ),
+                    ),
+                    subtitle: Text(gift['event'] ?? 'No event', style:TextStyle(
+                      color: isDarkMode
+                          ? myAppColors.lightWhite.withOpacity(0.7)
+                          : myAppColors.darkBlack.withOpacity(0.7),
+                      ),
+                    ),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: myAppColors.primColor),
                       onPressed: () => deleteGift(index),
@@ -231,7 +241,7 @@ class _giftListPageState extends State<giftList> {
         onPressed: () {
           navigateToGiftDetails();
         },
-        backgroundColor: myAppColors.primColor, // Primary color for the button
+        backgroundColor: myAppColors.secondaryColor.withOpacity(0.7),
         child: const Icon(
           Icons.add,
         ),
