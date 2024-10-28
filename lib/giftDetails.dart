@@ -3,9 +3,10 @@ import 'package:hedieaty/appBar.dart';
 import 'package:hedieaty/colors.dart'; // Assuming you have this for your theme colors
 
 class GiftDetailsPage extends StatefulWidget {
-  final Map<String, dynamic>? gift; // Pass gift details if editing
+  final Map<String, dynamic>? gift;
+  final Map<String, dynamic>? event;
 
-  const GiftDetailsPage({super.key, this.gift});
+  const GiftDetailsPage({super.key, this.gift, this.event});
 
   @override
   _GiftDetailsPageState createState() => _GiftDetailsPageState();
@@ -28,7 +29,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
       descriptionController.text = widget.gift!['description'];
       categoryController.text = widget.gift!['category'];
       priceController.text = widget.gift!['price'].toString();
-      eventController.text = widget.gift!['event'];
+      eventController.text = widget.event!['name'];
       isPledged = widget.gift!['status'] == 'pledged';
     }
   }

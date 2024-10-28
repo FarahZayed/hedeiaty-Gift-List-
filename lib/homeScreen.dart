@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/appBar.dart';
-import 'package:hedieaty/manageEvents.dart';
+import 'package:hedieaty/db.dart';
 // import 'package:contacts_service/contacts_service.dart';
 // import 'package:permission_handler/permission_handler.dart';
 
@@ -20,12 +20,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _phoneController = TextEditingController();
   //List<Contact> contacts = [];
 
-  // Dummy data for now
-  final List<Map<String, dynamic>> friends = [
-    {'name': 'Ahmed', 'profileImage': 'asset/profile.png', 'upcomingEvents': 3},
-    {'name': 'Dina', 'profileImage': 'asset/profile.png', 'upcomingEvents': 0},
-    {'name': 'Joe', 'profileImage': 'asset/profile.png', 'upcomingEvents': 1},
-  ];
 
   // @override
   // void initState() {
@@ -122,6 +116,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    //for now fetch the only logged in user
+    Map<String,dynamic> user= MockDatabase.friends[3];
 
     return Scaffold(
       appBar: CustomAppBar(
@@ -154,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 10.0),
                     Text(
-                      "User Name",
+                      "${user['userName']}",
                       style: TextStyle(
                         color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
                         fontSize: 18.0,
@@ -162,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     Text(
-                      "user.email@example.com",
+                      "${user['email']}",
                       style: TextStyle(
                         color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
                         fontSize: 14.0,
@@ -182,14 +178,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 leading: Icon(Icons.card_giftcard, color: myAppColors.primColor),
                 title: Text('My Gift List'),
                 onTap: () {
-                  Navigator.pushNamed(context, "/giftList");
+                  Navigator.pushNamed(
+                    context,
+                    '/giftList',
+                    arguments: {
+                      'friendId': user['id'],
+                      'eventId': null,
+                    },
+                  );
+
                 },
               ),
               ListTile(
                 leading: Icon(Icons.event, color: myAppColors.primColor),
                 title: Text('My Events'),
                 onTap: () {
-                  Navigator.pushNamed(context, "/eventList");
+                  Navigator.pushNamed(context, "/eventList" , arguments: {
+                    'friendId': user['id']
+                  });
                 },
               ),
               ListTile(
@@ -273,10 +279,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
           Expanded(
             child: ListView.builder(
-              itemCount: friends.length,
+              //for now make it -1
+              itemCount: MockDatabase.friends.length-1,
               itemBuilder: (context, index) {
-                var friend = friends[index];
-                bool hasUpcomingEvents = friend['upcomingEvents'] > 0;
+                var friend = MockDatabase.friends[index];
+                bool hasUpcomingEvents = friend['events'].length > 0;
 
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -295,26 +302,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    subtitle: Text(
-                      hasUpcomingEvents
-                          ? 'Upcoming Events: ${friend['upcomingEvents']}'
-                          : 'No Upcoming Events',
-                      style: TextStyle(
-                        color: hasUpcomingEvents ? myAppColors.correctColor : Colors.grey,
-                        fontSize: 16.0,
-                      ),
-                    ),
+
                     trailing: hasUpcomingEvents ? CircleAvatar(
                       radius: 12,
                       backgroundColor: myAppColors.primColor,
                       child: Text(
-                        '${friend['upcomingEvents']}',
+                        '${friend['events'].length}',
                         style: const TextStyle(color: Colors.white, fontSize: 12.0),
                       ),
                     )
                         : null,
                     onTap: () {
-                      Navigator.pushNamed(context, "/friendGiftPage", arguments: friend['name']);
+                      Navigator.pushNamed(context, "/eventList", arguments: friend['id']);
                     },
                   ),
                 );
@@ -329,7 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
           showDialog(context: context,
             builder: (context) {
               return PopupMenuButton<String>(
-               // icon: Icon(Icons.add, color: isDarkMode?myAppColors.darkBlack:myAppColors.lightWhite,),
+                // icon: Icon(Icons.add, color: isDarkMode?myAppColors.darkBlack:myAppColors.lightWhite,),
 
                 onSelected: (String item) {
                   // if (item == 'add_by_contact') {
@@ -358,7 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         child:  const Icon(
           Icons.add,
-         ),
+        ),
       ),
 
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,

@@ -4,80 +4,32 @@ import 'package:intl/intl.dart';
 import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/appBar.dart';
 import 'package:hedieaty/manageEvents.dart';
+import 'package:hedieaty/db.dart';
 
 class eventList extends StatefulWidget {
+  final int friendId;
 
-  const eventList({super.key});
+  const eventList({super.key, required this.friendId });
 
   @override
   State<eventList> createState() => _eventListState();
 }
 
 class _eventListState extends State<eventList> {
-  List<Map<String, dynamic>> events = [
-    {
-      'name': 'Tech Conference',
-      'date': DateTime(2024, 5, 15),
-      'category': 'Technology',
-      'status': 'Upcoming',
-    },
-    {
-      'name': 'Music Festival',
-      'date': DateTime(2023, 12, 28),
-      'category': 'Entertainment',
-      'status': 'Upcoming',
-    },
-    {
-      'name': 'Art Exhibition',
-      'date': DateTime(2024, 2, 10),
-      'category': 'Art',
-      'status': 'Upcoming',
-    },
-    {
-      'name': 'Food Festival',
-      'date': DateTime(2023, 11, 5),
-      'category': 'Food',
-      'status': 'Upcoming',
-    },
-    {
-      'name': 'Sports Tournament',
-      'date': DateTime(2024, 3, 22),
-      'category': 'Sports',
-      'status': 'Upcoming',
-    },
-    {
-      'name': 'Book Fair',
-      'date': DateTime.now(), // Current date
-      'category': 'Literature',
-      'status': 'Current',
-    },
-    {
-      'name': 'Holiday Celebration',
-      'date': DateTime.now().add(Duration(days: 2)),
-      'category': 'Festive',
-      'status': 'Current',
-    },
-    {
-      'name': 'Product Launch',
-      'date': DateTime(2023, 10, 20),
-      'category': 'Business',
-      'status': 'Past',
-    },
-    {
-      'name': 'Workshop',
-      'date': DateTime(2023, 9, 12),
-      'category': 'Education',
-      'status': 'Past',
-    },
-    {
-      'name': 'Concert',
-      'date': DateTime(2023, 8, 5),
-      'category': 'Entertainment',
-      'status': 'Past',
-    },
-  ];
-
+  late List<Map<String, dynamic>>events;
+  late bool isLoggedIn;
   String sortOption = '';
+
+  @override
+  void initState() {
+    super.initState();
+    events = MockDatabase.getEventsByFriendId(widget.friendId);
+    var friend = MockDatabase.friends.firstWhere((friend) => friend['id'] == widget.friendId);
+    isLoggedIn = friend['isLoggedin'];
+
+  }
+
+
 
   void sortEvents(String option) {
     setState(() {
@@ -119,6 +71,8 @@ class _eventListState extends State<eventList> {
       events.removeAt(index);
     });
   }
+
+
   // void showEditDialog(int index) {
   //   TextEditingController nameController = TextEditingController(text: events[index]['name']);
   //   TextEditingController categoryController = TextEditingController(text: events[index]['category']);
@@ -243,31 +197,44 @@ class _eventListState extends State<eventList> {
                   child: ListTile(
                     title: Text(event['name']),
                     subtitle: Text(DateFormat('yyyy-MM-dd').format(event['date']), style: TextStyle(color: myAppColors.correctColor)),
-                    onTap: () {
+                    onTap: isLoggedIn ? () {
                       goToEditEvents(event: event);
-                    },
-                    trailing: IconButton(
+                    } : null,
+                    trailing:  isLoggedIn? IconButton(
                       icon: const Icon(Icons.delete, color: myAppColors.primColor),
-                      onPressed: () => deleteEvent(index),
+                      onPressed: () {
+                        deleteEvent(index);},)
+                    : IconButton(
+                      icon: const Icon(Icons.arrow_forward_ios_rounded, color: myAppColors.primColor,),
+                      onPressed: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/giftList',
+                          arguments: {
+                            'friendId': widget.friendId,
+                            'eventId': event['id'],
+                          },
+                        );
+
+                      },
                     ),
                   ),
-                );
+                  );
               },
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          goToEditEvents();
-        },
-        backgroundColor: myAppColors.secondaryColor.withOpacity(0.7),
-        child: const Icon(
-          Icons.add,
-
+      floatingActionButton: Visibility(
+        visible: isLoggedIn,
+        child: FloatingActionButton(
+          onPressed: () {
+            goToEditEvents();
+          },
+          backgroundColor: myAppColors.secondaryColor.withOpacity(0.7),
+          child: const Icon(Icons.add),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/appBar.dart';
 
 class profilePage extends StatefulWidget {
+
   @override
   _profilePageState createState() => _profilePageState();
 }

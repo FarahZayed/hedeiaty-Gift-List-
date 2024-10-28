@@ -96,7 +96,7 @@ class _pledgedGiftsPageState extends State<pledgedGiftsPage> {
                       ),
                       trailing: isPending ? IconButton(
                         onPressed: () {
-                          //change logic
+                          modifyPledge(index);
                         },
                         icon: Icon(Icons.change_circle_outlined,
                           color: myAppColors.primColor,

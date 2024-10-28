@@ -40,8 +40,21 @@ class _MyAppState extends State<MyApp> {
        home:const loginPage(),
       routes: {
         "/home":(context)=>HomeScreen(onThemeToggle: _toggleTheme),
-        "/eventList":(context)=>eventList(),
-        "/giftList":(context)=>giftList(),
+        "/eventList":(context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
+          return eventList(
+            friendId: args['friendId'],
+
+          );
+        },
+        '/giftList': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
+          return giftList(
+            friendId: args['friendId'],
+            eventId: args['eventId'],
+          );
+        },
+
         "/profile":(context)=>profilePage(),
         "/pledgedGifts":(context)=>pledgedGiftsPage(),
         "/friendGiftPage":(context)=>friendGiftPage(friendName: ModalRoute.of(context)?.settings.arguments as String),

@@ -2,98 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/appBar.dart';
 import 'package:hedieaty/giftDetails.dart';
+import 'package:hedieaty/db.dart';
 
 class giftList extends StatefulWidget {
-  const giftList({super.key});
+  final int friendId;
+  final int? eventId;
+
+  const giftList({super.key, required this.friendId, this.eventId});
 
   @override
   _giftListPageState createState() => _giftListPageState();
 }
 
 class _giftListPageState extends State<giftList> {
-  List<Map<String, dynamic>> gifts = [
-    {
-      'name': 'Smartphone',
-      'category': 'Electronics',
-      'description': 'A high-end smartphone with the latest features.',
-      'price': 12.5,
-      'status': 'available',
-      'event': 'birthday',
-    },
-    {
-      'name': 'Book',
-      'category': 'Books',
-      'description': 'A captivating novel that will keep you engaged.',
-      'price': 50.0,
-      'status': 'pledged',
-      'event': 'wedding',
-    },
-    {
-      'name': 'Headphones',
-      'category': 'Electronics',
-      'description': 'Wireless headphones with noise cancellation.',
-      'price': 60.3,
-      'status': 'available',
-      'event': 'birthday',
-    },
-    {
-      'name': 'T-shirt',
-      'category': 'Clothing',
-      'description': 'A stylish and comfortable t-shirt.',
-      'price': 55.0,
-      'status': 'pledged',
-      'event': 'graduation',
-    },
-    {
-      'name': 'Tablet',
-      'category': 'Electronics',
-      'description': 'A versatile tablet for work and entertainment.',
-      'price': 200.0,
-      'status': 'available',
-      'event': 'anniversary',
-    },
-    {
-      'name': 'Coffee Maker',
-      'category': 'Kitchen',
-      'description': 'A programmable coffee maker for your daily caffeine fix.',
-      'price': 75.0,
-      'status': 'pledged',
-      'event': 'housewarming',
-    },
-    {
-      'name': 'Backpack',
-      'category': 'Travel',
-      'description': 'A durable backpack for all your adventures.',
-      'price': 80.0,
-      'status': 'available',
-      'event': 'travel',
-    },
-    {
-      'name': 'Watch',
-      'category': 'Accessories',
-      'description': 'A classic watch with a timeless design.',
-      'price': 150.0,
-      'status': 'pledged',
-      'event': 'birthday',
-    },
-    {
-      'name': 'Board Game',
-      'category': 'Games',
-      'description': 'A fun board game for the whole family.',
-      'price': 35.0,
-      'status': 'available',
-      'event': 'christmas',
-    },
-    {
-      'name': 'Gift Card',
-      'category': 'Other',
-      'description': 'A gift card for their favorite store.',
-      'price': 25.0,
-      'status': 'pledged',
-      'event': 'birthday',
-    },
-  ];
+  late List<Map<String, dynamic>> gifts;
+  late bool isLoggedin;
+  Map<String, dynamic>? event;
   String sortOption = '';
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.eventId != null) {
+      gifts = MockDatabase.getGiftsForFriendEvent(widget.friendId, widget.eventId!);
+      event = MockDatabase.getEventById(widget.eventId!); // Fetch the event by ID
+    } else {
+      gifts = MockDatabase.getGiftsForFriend(widget.friendId);
+    }
+    var friend = MockDatabase.friends.firstWhere((friend) => friend['id'] == widget.friendId);
+    isLoggedin = friend['isLoggedin'];
+  }
 
   void sortGifts(String option) {
     setState(() {
@@ -142,28 +80,30 @@ class _giftListPageState extends State<giftList> {
     });
   }
 
-  void navigateToGiftDetails({Map<String, dynamic>? gift}) async {
+  void navigateToGiftDetails({Map<String, dynamic>? gift,Map<String, dynamic>? event}) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => GiftDetailsPage(gift: gift),
+        builder: (context) => GiftDetailsPage(gift: gift,event:event),
       ),
     );
 
     if (result != null) {
       if (gift != null) {
-
         int index = gifts.indexOf(gift);
-        editGift(index, result['name'], result['category'], result['description'], result['price'], result['status'], result['image'],result['event']);
+        editGift(index, result['name'], result['category'], result['description'], result['price'], result['status'], result['image'], result['event']);
       } else {
-
-        addGift(result['name'], result['category'], result['description'], result['price'], result['status'], result['image'],result['event']);
+        addGift(result['name'], result['category'], result['description'], result['price'], result['status'], result['image'], result['event']);
       }
     }
   }
 
-
-
+  void togglePledgeStatus(int index) {
+    setState(() {
+      gifts[index]['status'] = gifts[index]['status'] == 'Available' ? 'Pledged' : 'Available';
+      //then save in DB
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -197,15 +137,29 @@ class _giftListPageState extends State<giftList> {
       ),
       body: Column(
         children: [
+          // Display the Event Name at the top of the page if available
+          if (event != null)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                event!['name'],
+                style: TextStyle(
+                  fontSize: 22.0,
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
+                ),
+              ),
+            ),
           Expanded(
             child: ListView.builder(
               itemCount: gifts.length,
               itemBuilder: (context, index) {
                 var gift = gifts[index];
-                bool isPledged = gift['status'] == 'pledged';
-
+                var evntCurrentId = gift['eventId'];
+                bool isPledged = gift['status'] == 'Pledged';
+                Map<String, dynamic>? evnt = MockDatabase.getEventById(evntCurrentId);
                 return Card(
-                  color: isPledged ? myAppColors.wrongColor.withOpacity(0.4) : (isDarkMode?Colors.black: myAppColors.lightWhite),
+                  color: isPledged ? myAppColors.wrongColor.withOpacity(0.4) : (isDarkMode ? Colors.black : myAppColors.lightWhite),
                   margin: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 10.0),
                   elevation: 15.0,
                   child: ListTile(
@@ -213,22 +167,36 @@ class _giftListPageState extends State<giftList> {
                       fontSize: 18.0,
                       fontWeight: FontWeight.bold,
                       color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
-                      ),
                     ),
-                    subtitle: Text(gift['event'] ?? 'No event', style:TextStyle(
-                      color: isDarkMode
-                          ? myAppColors.lightWhite.withOpacity(0.7)
-                          : myAppColors.darkBlack.withOpacity(0.7),
-                      ),
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: myAppColors.primColor),
-                      onPressed: () => deleteGift(index),
+                    subtitle: Text(evnt?['name']?? "No assigned event ", style: TextStyle(
+                      color: isDarkMode ? myAppColors.lightWhite.withOpacity(0.7) : myAppColors.darkBlack.withOpacity(0.7),
+                    ),
+                    ),
+                    trailing: isLoggedin
+                        ? IconButton(
+                         icon: const Icon(Icons.delete, color: myAppColors.primColor),
+                         onPressed: () {
+                          deleteGift(index);
+                        },
+                    )
+                        : ElevatedButton(
+                          onPressed: () => togglePledgeStatus(index),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isPledged ? Colors.grey : myAppColors.primColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                          child: Text(
+                            isPledged ? 'Pledged' : 'Pledge',
+                            style: TextStyle(color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack),
+                          ),
                     ),
                     onTap: () {
-                        if (!isPledged) {
-                          navigateToGiftDetails(gift: gift);
-                        }
+                      if (!isPledged) {
+                        navigateToGiftDetails(gift: gift, event: evnt);
+                      }
                     },
                   ),
                 );
@@ -237,16 +205,17 @@ class _giftListPageState extends State<giftList> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          navigateToGiftDetails();
-        },
-        backgroundColor: myAppColors.secondaryColor.withOpacity(0.7),
-        child: const Icon(
-          Icons.add,
+      floatingActionButton: Visibility(
+        visible: isLoggedin,
+        child: FloatingActionButton(
+          onPressed: () {
+            navigateToGiftDetails();
+          },
+          backgroundColor: myAppColors.secondaryColor.withOpacity(0.7),
+          child: const Icon(Icons.add),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+
     );
   }
 }
