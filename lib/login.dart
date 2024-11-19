@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/colors.dart';
+import 'dart:ui';
+
 
 class loginPage extends StatefulWidget {
   const loginPage({super.key});
@@ -19,36 +21,48 @@ class _loginPageState extends State<loginPage> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Image
+          // Background Image with Blur Effect
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage('asset/login-background.png'),
-                fit: BoxFit.cover,  // Cover entire background
+                fit: BoxFit.cover,
+              ),
+            ),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+              child: Container(
+                color: myAppColors.darkBlack.withOpacity(0.3),
               ),
             ),
           ),
-          // Login Form
+          // Login Form Container
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.8),  // Add slight opacity to form background
-                  borderRadius: BorderRadius.circular(16.0),
+                  color: Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(24.0),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 10.0,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-
                     if (!isLogin) ...[
                       const Text(
                         "Welcome to Hedieaty",
                         style: TextStyle(
-                          fontSize: 24.0,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 26.0,
+                          fontWeight: FontWeight.w600,
                           color: myAppColors.darkBlack,
                         ),
                       ),
@@ -56,30 +70,27 @@ class _loginPageState extends State<loginPage> {
                       ElevatedButton(
                         onPressed: () {
                           setState(() {
-                            isLogin = true;  // Show login form
+                            isLogin = true;
                           });
                         },
                         style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 16.0),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                          elevation: 5.0,
                           backgroundColor: myAppColors.primColor,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 50.0,
-                            vertical: 16.0,
-                          ),
                         ),
                         child: const Text(
                           "Get started",
-                          style: TextStyle(color: myAppColors.darkBlack),
+                          style: TextStyle(fontSize: 18.0, color: myAppColors.darkBlack),
                         ),
                       ),
-                      const SizedBox(height: 16.0),
+                      const SizedBox(height: 20.0),
                     ],
-
-                    // Show login form only if "Get started" is clicked (isLogin is true)
                     if (isLogin) ...[
                       const Text(
                         'Login',
                         style: TextStyle(
-                          fontSize: 24.0,
+                          fontSize: 28.0,
                           fontWeight: FontWeight.bold,
                           color: myAppColors.darkBlack,
                         ),
@@ -88,65 +99,75 @@ class _loginPageState extends State<loginPage> {
                       // Email Field
                       TextField(
                         controller: emailController,
-
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Email',
-                          labelStyle: TextStyle(color: myAppColors.darkBlack ),
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.email ,color: myAppColors.darkBlack,),
-
-
+                          labelStyle: const TextStyle(color: myAppColors.darkBlack),
+                          filled: true,
+                          fillColor: Colors.grey.withOpacity(0.1),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                            borderSide: BorderSide.none,
+                          ),
+                          prefixIcon: const Icon(Icons.email, color: myAppColors.darkBlack),
                         ),
                       ),
                       const SizedBox(height: 16.0),
                       // Password Field
                       TextField(
                         controller: passwordController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Password',
-                          labelStyle: TextStyle(color: myAppColors.darkBlack ),
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.lock,color: myAppColors.darkBlack),
+                          labelStyle: const TextStyle(color: myAppColors.darkBlack),
+                          filled: true,
+                          fillColor: Colors.grey.withOpacity(0.1),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                            borderSide: BorderSide.none,
+                          ),
+                          prefixIcon: const Icon(Icons.lock, color: myAppColors.darkBlack),
                         ),
-                        obscureText: true,  // To hide the password
+                        obscureText: true,
                       ),
                       const SizedBox(height: 24.0),
-                      // Login Button
-                      ElevatedButton(
-                        onPressed: ()async {
-                          // Go to DB to check the credentials
-                          await Navigator.pushReplacementNamed(
-                            context,"/home"
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: myAppColors.primColor,  // Background color for the button
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 50.0,
-                            vertical: 16.0,
+                      // Login Button with Gradient
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [myAppColors.primColor, myAppColors.secondaryColor],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(20.0),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            await Navigator.pushReplacementNamed(context, "/home");
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 16.0),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                            shadowColor: Colors.transparent,
+                          ),
+                          child: const Text(
+                            'Login',
+                            style: TextStyle(color: Colors.white, fontSize: 18.0),
                           ),
                         ),
-                        child: const Text(
-                          'Login',
-                          style: TextStyle(color: myAppColors.darkBlack),
-                        ),
                       ),
-                      const SizedBox(height: 16.0),
+                      const SizedBox(height: 20.0),
                       // Signup Option
                       GestureDetector(
                         onTap: () {
                           // Navigate to Signup Page
-                          // Navigator.push(
-                          //   context,
-                          //   MaterialPageRoute(builder: (context) => SignupPage()),
-                          // );
+                          // Navigator.push(context, MaterialPageRoute(builder: (context) => SignupPage()));
                         },
                         child: const Text(
                           'Don\'t have an account? Sign up',
                           style: TextStyle(
                             color: myAppColors.primColor,
                             decoration: TextDecoration.underline,
-                            fontSize: 18.0,
+                            fontSize: 16.0,
                           ),
                         ),
                       ),
