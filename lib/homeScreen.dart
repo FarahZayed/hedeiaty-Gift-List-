@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/appBar.dart';
 import 'package:hedieaty/db.dart';
+import 'package:hedieaty/models/userModel.dart';
 
-import 'package:contacts_service/contacts_service.dart';
+//import 'package:contacts_service/contacts_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -21,28 +22,28 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _nameOfFriend = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  List<Contact> contacts = [];
+ // List<Contact> contacts = [];
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
-    _requestPermission();
+    //_requestPermission();
   }
 
-  Future<void> _requestPermission() async {
-    if (await Permission.contacts.request().isGranted) {
-      _fetchContacts();
-    }
-  }
+  // Future<void> _requestPermission() async {
+  //   if (await Permission.contacts.request().isGranted) {
+  //     _fetchContacts();
+  //   }
+  // }
 
-  Future<void> _fetchContacts() async {
-    Iterable<Contact> contactsFromDevice = await ContactsService.getContacts();
-    setState(() {
-      contacts = contactsFromDevice.toList();
-    });
-  }
+  // Future<void> _fetchContacts() async {
+  //   Iterable<Contact> contactsFromDevice = await ContactsService.getContacts();
+  //   setState(() {
+  //     contacts = contactsFromDevice.toList();
+  //   });
+  // }
 
   void _addFriendManually() {
     showDialog(
@@ -115,43 +116,43 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showContacts() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Select Contact"),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: ListView.builder(
-              itemCount: contacts.length,
-              itemBuilder: (context, index) {
-                Contact contact = contacts[index];
-                return ListTile(
-                  title: Text(contact.displayName ?? "No Name"),
-                  subtitle: Text(contact.phones!.isNotEmpty
-                      ? contact.phones!.first.value ?? ""
-                      : "No phone number"),
-                  onTap: () {
-                    Navigator.pop(context);
-                    if (contact.phones != null && contact.phones!.isNotEmpty) {
-                      String phoneNumber = contact.phones!.first.value ?? "";
-                      print(
-                          "Friend added from contact: ${contact.displayName} with phone number: $phoneNumber");
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Selected contact has no phone number")),
-                      );
-                    }
-                  },
-                );
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }
+  // void _showContacts() {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) {
+  //       return AlertDialog(
+  //         title: const Text("Select Contact"),
+  //         content: SizedBox(
+  //           width: double.maxFinite,
+  //           child: ListView.builder(
+  //             itemCount: contacts.length,
+  //             itemBuilder: (context, index) {
+  //               Contact contact = contacts[index];
+  //               return ListTile(
+  //                 title: Text(contact.displayName ?? "No Name"),
+  //                 subtitle: Text(contact.phones!.isNotEmpty
+  //                     ? contact.phones!.first.value ?? ""
+  //                     : "No phone number"),
+  //                 onTap: () {
+  //                   Navigator.pop(context);
+  //                   if (contact.phones != null && contact.phones!.isNotEmpty) {
+  //                     String phoneNumber = contact.phones!.first.value ?? "";
+  //                     print(
+  //                         "Friend added from contact: ${contact.displayName} with phone number: $phoneNumber");
+  //                   } else {
+  //                     ScaffoldMessenger.of(context).showSnackBar(
+  //                       const SnackBar(content: Text("Selected contact has no phone number")),
+  //                     );
+  //                   }
+  //                 },
+  //               );
+  //             },
+  //           ),
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
   void _showAddOptions() {
     showModalBottomSheet(
@@ -170,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: const Text("Add from Contacts"),
                 onTap: () {
                   Navigator.pop(context);
-                  _showContacts();
+                  //_showContacts();
                 },
               ),
               ListTile(
@@ -190,8 +191,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final User user = ModalRoute.of(context)!.settings.arguments as User;
     isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    Map<String, dynamic> user = MockDatabase.friends[3];
+   // Map<String, dynamic> user = MockDatabase.friends[3];
 
     return Scaffold(
       key: _scaffoldKey,
@@ -223,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 10.0),
                     Text(
-                      "${user['userName']}",
+                      "${user.name}",
                       style: TextStyle(
                         color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
                         fontSize: 18.0,
@@ -231,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     Text(
-                      "${user['email']}",
+                      "${user.email}",
                       style: TextStyle(
                         color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
                         fontSize: 14.0,
@@ -243,13 +245,13 @@ class _HomeScreenState extends State<HomeScreen> {
               ListTile(
                 leading: const Icon(Icons.person, color: myAppColors.primColor),
                 title: const Text('Profile'),
-                onTap: () => Navigator.pushNamed(context, "/profile"),
+                onTap: () => Navigator.pushNamed(context, "/profile", arguments: user),
               ),
               ListTile(
                 leading: const Icon(Icons.card_giftcard, color: myAppColors.primColor),
                 title: const Text('My Gift List'),
                 onTap: () => Navigator.pushNamed(context, "/giftList", arguments: {
-                  'friendId': user['id'],
+                  'friendId': user.id,
                   'eventId': null,
                 }),
               ),
@@ -257,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 leading: const Icon(Icons.event, color: myAppColors.primColor),
                 title: const Text('My Events'),
                 onTap: () => Navigator.pushNamed(context, "/eventList", arguments: {
-                  'friendId': user['id']
+                  'friendId': user.id
                 }),
               ),
               ListTile(

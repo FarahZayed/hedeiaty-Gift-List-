@@ -9,8 +9,11 @@ import 'package:hedieaty/profile.dart';
 import 'package:hedieaty/pledgedGifts.dart';
 import 'package:hedieaty/friendGiftList.dart';
 import 'package:hedieaty/manageEvents.dart';
+import 'package:hedieaty/db.dart';
 
-void main() {
+void main() async {
+  //WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter bindings are initialized before any async operations
+  //DatabaseService().initDatabase();
   runApp(const MyApp());
 }
 
@@ -29,6 +32,14 @@ class _MyAppState extends State<MyApp> {
       _themeMode = themeMode;
     });
   }
+
+
+  @override
+  void initState() {
+    super.initState();
+    //DatabaseService().initDatabase();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -36,7 +47,6 @@ class _MyAppState extends State<MyApp> {
       theme: MyAppThemes.lightTheme,
       darkTheme: MyAppThemes.darkTheme,
       themeMode: _themeMode,
-      //home:  HomeScreen(onThemeToggle: _toggleTheme),
        home:const loginPage(),
       routes: {
         "/home":(context)=>HomeScreen(onThemeToggle: _toggleTheme),

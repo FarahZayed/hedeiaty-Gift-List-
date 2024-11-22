@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/appBar.dart';
+import 'package:hedieaty/models/userModel.dart';
+import 'package:hedieaty/db.dart';
 
 class profilePage extends StatefulWidget {
 
@@ -13,7 +15,12 @@ class _profilePageState extends State<profilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final User user = ModalRoute.of(context)!.settings.arguments as User;
     bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final dbService = DatabaseService();
+    final TextEditingController userNameController = TextEditingController();
+    final TextEditingController emailController = TextEditingController();
+    //final TextEditingController imageController = TextEditingController();
 
     return Scaffold(
       appBar: CustomAppBar(title: "Profile",isDarkMode:  isDarkMode),
@@ -33,8 +40,7 @@ class _profilePageState extends State<profilePage> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      //will be fetched from DB
-                      "User Name",
+                      "${user.name}",
                       style: TextStyle(
                         fontSize: 22.0,
                         fontWeight: FontWeight.bold,
@@ -42,7 +48,7 @@ class _profilePageState extends State<profilePage> {
                       ),
                     ),
                     Text(
-                      "user.email@example.com",
+                      "${user.email}",
                       style: TextStyle(
                         fontSize: 16.0,
                         color: isDarkMode ? myAppColors.lightWhite.withOpacity(0.7) : myAppColors.darkBlack.withOpacity(0.7),
@@ -78,7 +84,82 @@ class _profilePageState extends State<profilePage> {
                         title: Text("Update Personal Information"),
                         trailing: Icon(Icons.arrow_forward_ios, color: myAppColors.secondaryColor),
                         onTap: () {
-                          // Navigate to update personal information page
+                          showDialog(
+                            context: context,
+                            builder: (context) {
+                              return AlertDialog(
+                                title: const Text("Update your profile"),
+                                content: SingleChildScrollView(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        TextField(
+                                          controller: userNameController,
+                                          keyboardType: TextInputType.name,
+                                          decoration: InputDecoration(
+                                            labelText: "Edit your username",
+                                            hintText: user.name,
+                                            border: const OutlineInputBorder(),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 15.0),
+                                        TextField(
+                                          controller: emailController,
+                                          keyboardType: TextInputType.emailAddress,
+                                          decoration: InputDecoration(
+                                            labelText: "Edit your email",
+                                            hintText: user.email,
+                                            border: const OutlineInputBorder(),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop(); // Close the dialog
+                                    },
+                                    child: const Text("Cancel"),
+                                  ),
+                                  TextButton(
+                                    onPressed: () async {
+                                      if (userNameController.text.isNotEmpty || emailController.text.isNotEmpty) {
+                                        final updatedUser = User(
+                                          id: user.id,
+                                          name: userNameController.text.isNotEmpty
+                                              ? userNameController.text
+                                              : user.name,
+                                          email: emailController.text.isNotEmpty
+                                              ? emailController.text
+                                              : user.email,
+                                          password: user.password,
+                                          preferences: user.preferences,
+                                        );
+                                        await dbService.editUser(updatedUser);
+
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text("Profile updated successfully")),
+                                        );
+                                        Navigator.of(context).pop();
+                                        setState(() {
+
+                                        });
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text("Please enter the data you want to change")),
+                                        );
+                                      }
+                                    },
+                                    child: const Text("Update"),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
                         },
                       ),
                       Divider(),

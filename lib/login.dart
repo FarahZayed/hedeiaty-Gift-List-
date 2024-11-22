@@ -1,6 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:hedieaty/colors.dart';
+import 'dart:io';
 import 'dart:ui';
+
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:hedieaty/colors.dart';
+import 'package:hedieaty/db.dart';
+import 'package:hedieaty/models/userModel.dart';
 
 
 class loginPage extends StatefulWidget {
@@ -11,10 +16,203 @@ class loginPage extends StatefulWidget {
 }
 
 class _loginPageState extends State<loginPage> {
+  final dbService = DatabaseService();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
 
   bool isLogin = false;
+  File? profileImage;
+
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        profileImage = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<void> _login() async {
+    String email = emailController.text.trim();
+    String password = passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter both email and password")),
+      );
+      return;
+    }
+
+    final users = await dbService.getUsers();
+    User? user;
+
+    try {
+      user = users.firstWhere(
+            (user) => user.email == email && user.password == password,
+      );
+    } catch (e) {
+      user = null; // No user matches the criteria
+    }
+
+    if (user != null) {
+      Navigator.pushReplacementNamed(context, "/home",arguments: user);
+    } else {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Invalid email or password")),
+      );
+    }
+  }
+
+  Future<void> _signUp() async {
+    String email = emailController.text.trim();
+    String password = passwordController.text.trim();
+    String username = usernameController.text.trim();
+
+    if (email.isEmpty || password.isEmpty || username.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill in all the fields")),
+      );
+      return;
+    }
+
+    final newUser = User(
+      id: 0,
+      name: username,
+      email: email,
+      password: password,
+      preferences: "None",
+    );
+
+    await dbService.insertUser(newUser);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Signup successful! Please log in.")),
+    );
+
+
+    usernameController.clear();
+    emailController.clear();
+    passwordController.clear();
+    setState(() {
+      isLogin = true;
+    });
+  }
+
+  void _showSignUpModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // Allows modal to take up more space
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      builder: (BuildContext context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 24.0,
+            right: 24.0,
+            top: 16.0,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16.0,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Sign Up",
+                style: TextStyle(
+                  fontSize: 26.0,
+                  fontWeight: FontWeight.w600,
+                  color: myAppColors.darkBlack,
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              GestureDetector(
+                onTap: _pickImage,
+                child: CircleAvatar(
+                  radius: 50.0,
+                  backgroundImage: profileImage != null
+                      ? FileImage(profileImage!)
+                     : const AssetImage("asset/profile.png")
+                  as ImageProvider,
+                  child: profileImage == null
+                      ? const Icon(Icons.add_a_photo, size: 30, color: Colors.white)
+                      : null,
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              // Username Field
+              TextField(
+                controller: usernameController,
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                  labelStyle: const TextStyle(color: myAppColors.darkBlack),
+                  filled: true,
+                  fillColor: Colors.grey.withOpacity(0.1),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderSide: BorderSide.none,
+                  ),
+                  prefixIcon: const Icon(Icons.person, color: myAppColors.darkBlack),
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              // Email Field
+              TextField(
+                controller: emailController,
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  labelStyle: const TextStyle(color: myAppColors.darkBlack),
+                  filled: true,
+                  fillColor: Colors.grey.withOpacity(0.1),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderSide: BorderSide.none,
+                  ),
+                  prefixIcon: const Icon(Icons.email, color: myAppColors.darkBlack),
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              // Password Field
+              TextField(
+                controller: passwordController,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  labelStyle: const TextStyle(color: myAppColors.darkBlack),
+                  filled: true,
+                  fillColor: Colors.grey.withOpacity(0.1),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderSide: BorderSide.none,
+                  ),
+                  prefixIcon: const Icon(Icons.lock, color: myAppColors.darkBlack),
+                ),
+                obscureText: true,
+              ),
+              const SizedBox(height: 24.0),
+              ElevatedButton(
+                onPressed: () async {
+                  await _signUp();
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 16.0),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
+                  backgroundColor: myAppColors.primColor,
+                ),
+                child: const Text(
+                  "Sign Up",
+                  style: TextStyle(fontSize: 18.0, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +228,7 @@ class _loginPageState extends State<loginPage> {
               ),
             ),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+              filter: ImageFilter.blur(sigmaX: 2, sigmaY:2),
               child: Container(
                 color: myAppColors.darkBlack.withOpacity(0.3),
               ),
@@ -140,14 +338,12 @@ class _loginPageState extends State<loginPage> {
                           borderRadius: BorderRadius.circular(20.0),
                         ),
                         child: ElevatedButton(
-                          onPressed: () async {
-                            await Navigator.pushReplacementNamed(context, "/home");
-                          },
+                          onPressed: _login,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
                             padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 16.0),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-                            shadowColor: Colors.transparent,
+                            elevation: 5.0,
+                            backgroundColor: myAppColors.primColor,
                           ),
                           child: const Text(
                             'Login',
@@ -159,8 +355,7 @@ class _loginPageState extends State<loginPage> {
                       // Signup Option
                       GestureDetector(
                         onTap: () {
-                          // Navigate to Signup Page
-                          // Navigator.push(context, MaterialPageRoute(builder: (context) => SignupPage()));
+                          _showSignUpModal();
                         },
                         child: const Text(
                           'Don\'t have an account? Sign up',
@@ -171,6 +366,7 @@ class _loginPageState extends State<loginPage> {
                           ),
                         ),
                       ),
+
                     ],
                   ],
                 ),
