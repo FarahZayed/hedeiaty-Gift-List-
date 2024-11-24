@@ -1,15 +1,13 @@
-class User {
-  final int id;
+class UserlocalDB {
+  final String id;
   final String name;
   final String email;
   final String? preferences;
-  final String password;
 
-  User({
+  UserlocalDB({
     required this.id,
     required this.name,
     required this.email,
-    required this.password,
     this.preferences,
   });
 
@@ -19,16 +17,14 @@ class User {
       'username': name,
       'email': email,
       'preferences': preferences,
-      'password':password
     };
   }
 
-  factory User.fromMap(Map<String, dynamic> map) {
-    return User(
+  factory UserlocalDB.fromMap(Map<String, dynamic> map) {
+    return UserlocalDB(
       id: map['id'],
       name: map['name'],
       email: map['email'],
-      password: map['password'],
       //preferences: map['preferences'],
     );
   }

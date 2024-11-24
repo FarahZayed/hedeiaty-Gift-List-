@@ -13,11 +13,31 @@ class profilePage extends StatefulWidget {
 class _profilePageState extends State<profilePage> {
   bool notificationsEnabled = true;
 
+   void _changeProfile(String username , String email,UserlocalDB user) async {
+          final dbService = DatabaseService();
+          if (username.isNotEmpty || email.isNotEmpty) {
+          user = UserlocalDB(
+            id: user.id,
+            name: username.isNotEmpty ? username : user.name,
+            email: email.isNotEmpty ? email : user.email,
+            preferences: user.preferences,
+          );
+          await dbService.editUser(user);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Profile updated successfully")),);
+          Navigator.of(context).pop();
+          } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Please enter the data you want to change")),);
+          }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final User user = ModalRoute.of(context)!.settings.arguments as User;
+    UserlocalDB user = ModalRoute.of(context)!.settings.arguments as UserlocalDB;
     bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final dbService = DatabaseService();
+
     final TextEditingController userNameController = TextEditingController();
     final TextEditingController emailController = TextEditingController();
     //final TextEditingController imageController = TextEditingController();
@@ -126,33 +146,11 @@ class _profilePageState extends State<profilePage> {
                                     child: const Text("Cancel"),
                                   ),
                                   TextButton(
-                                    onPressed: () async {
-                                      if (userNameController.text.isNotEmpty || emailController.text.isNotEmpty) {
-                                        final updatedUser = User(
-                                          id: user.id,
-                                          name: userNameController.text.isNotEmpty
-                                              ? userNameController.text
-                                              : user.name,
-                                          email: emailController.text.isNotEmpty
-                                              ? emailController.text
-                                              : user.email,
-                                          password: user.password,
-                                          preferences: user.preferences,
-                                        );
-                                        await dbService.editUser(updatedUser);
+                                    onPressed: (){
+                                      setState(() {
+                                          _changeProfile(userNameController.text.trim(), emailController.text.trim(), user);
+                                      });
 
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text("Profile updated successfully")),
-                                        );
-                                        Navigator.of(context).pop();
-                                        setState(() {
-
-                                        });
-                                      } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text("Please enter the data you want to change")),
-                                        );
-                                      }
                                     },
                                     child: const Text("Update"),
                                   ),

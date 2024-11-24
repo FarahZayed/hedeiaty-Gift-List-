@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/appBar.dart';
 import 'package:hedieaty/db.dart';
+//import 'package:hedieaty/models/userModel.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hedieaty/models/userModel.dart';
 
 //import 'package:contacts_service/contacts_service.dart';
@@ -189,11 +191,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
-    final User user = ModalRoute.of(context)!.settings.arguments as User;
+    final UserlocalDB user = ModalRoute.of(context)!.settings.arguments as UserlocalDB;
+    //final user = FirebaseAuth.instance.currentUser;
     isDarkMode = Theme.of(context).brightness == Brightness.dark;
-   // Map<String, dynamic> user = MockDatabase.friends[3];
 
     return Scaffold(
       key: _scaffoldKey,

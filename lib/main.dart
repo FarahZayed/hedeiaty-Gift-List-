@@ -9,11 +9,17 @@ import 'package:hedieaty/profile.dart';
 import 'package:hedieaty/pledgedGifts.dart';
 import 'package:hedieaty/friendGiftList.dart';
 import 'package:hedieaty/manageEvents.dart';
-import 'package:hedieaty/db.dart';
+
+//firebase
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
 
 void main() async {
-  //WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter bindings are initialized before any async operations
-  //DatabaseService().initDatabase();
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 

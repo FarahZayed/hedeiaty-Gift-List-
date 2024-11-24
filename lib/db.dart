@@ -5,7 +5,7 @@ import 'package:path/path.dart';
 import 'package:flutter/widgets.dart' ;
 import 'dart:developer';
 import 'dart:io';
-//import 'package:path_provider/path_provider.dart';
+
 import 'models/eventModel.dart';
 import 'models/friendModel.dart';
 import 'models/giftModel.dart';
@@ -14,38 +14,45 @@ import 'models/userModel.dart';
 
 class DatabaseService{
   static Database? _database;
-  int version =1;
+  final int version = 1;
 
-  Future<Database?> get database async{
-    if(_database ==null){
-      log('INTIALIZING\n');
+  Future<Database?> get database async {
+    if (_database == null) {
+      log('Initializing Database\n');
       _database = await initialize();
     }
     return _database;
   }
 
-  initialize() async{
+  Future<Database> initialize() async {
+    // Get the database path
     String mypath = await getDatabasesPath();
-    log('MY PATH::'+mypath+'\n');
-    String path = join(mypath,'database.db');
-    log ('PATH::'+path+'\n');
-    Database mydb = await openDatabase(path ,version: version, onCreate: _onCreate);
+    String path = join(mypath, 'database.db');
+
+    // Open the database
+    Database mydb = await openDatabase(
+      path,
+      version: version,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+      onConfigure: _onConfigure,
+    );
+
     return mydb;
   }
 
+  Future<void> _onCreate(Database db, int version) async {
+    log('Creating Tables\n');
 
-
-  void _onCreate(Database db, int version) async {
-    log('ON CREATE\n');
     await db.execute(
       'CREATE TABLE Users('
-          'id INTEGER PRIMARY KEY AUTOINCREMENT, '
+          'id TEXT PRIMARY KEY, '
           'name TEXT, '
-          'email TEXT, '
-          'preferences TEXT, '
-          'password TEXT'
+          'email TEXT UNIQUE, '
+          'preferences TEXT'
           ')',
     );
+
     await db.execute(
       'CREATE TABLE Events('
           'id INTEGER PRIMARY KEY AUTOINCREMENT, '
@@ -57,6 +64,7 @@ class DatabaseService{
           'FOREIGN KEY(userId) REFERENCES Users(id)'
           ')',
     );
+
     await db.execute(
       'CREATE TABLE Gifts('
           'id INTEGER PRIMARY KEY AUTOINCREMENT, '
@@ -69,43 +77,56 @@ class DatabaseService{
           'FOREIGN KEY(eventId) REFERENCES Events(id)'
           ')',
     );
+
     await db.execute(
       'CREATE TABLE Friends('
           'userId INTEGER, '
-          'friendId INTEGER AUTOINCREMENT, '
-          'PRIMARY KEY(userId, friendId), '
+          'friendId INTEGER PRIMARY KEY AUTOINCREMENT, '
           'FOREIGN KEY(userId) REFERENCES Users(id), '
           'FOREIGN KEY(friendId) REFERENCES Users(id)'
           ')',
     );
-
-    // Insert dummy data
     await db.insert('Users', {
-      'username': 'Farah Zayed',
-      'email': 'farah.zayed@example.com',
-      'password': '123',
+      'id': 'kpjGp8UbDze494c1ml6xkCJEg8s2',
+      'name': 'Farah Zayed',
+      'email': 'farahzayed@email.com',
       'preferences': 'None',
     });
-    await db.insert('Users', {
-      'username': 'Jane Smith',
-      'email': 'jane.smith@example.com',
-      'password': 'password',
-      'preferences': 'Gift Preferences',
-    });
-    log('Dummy data inserted');
+
+    log('Tables Created\n');
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    log('Upgrading Database\n');
+    await _dropAllTables(db);
+    await _onCreate(db, version);
+  }
+
+  Future<void> _onConfigure(Database db) async {
+    log('Configuring Database: Dropping Existing Database\n');
+    await _dropAllTables(db);
+  }
+
+  Future<void> _dropAllTables(Database db) async {
+    log('Dropping Tables\n');
+    await db.execute('DROP TABLE IF EXISTS UserlocalDB');
+    await db.execute('DROP TABLE IF EXISTS Users');
+    await db.execute('DROP TABLE IF EXISTS Events');
+    await db.execute('DROP TABLE IF EXISTS Gifts');
+    await db.execute('DROP TABLE IF EXISTS Friends');
   }
 
 
   //User CRUD
-  Future<List<User>> getUsers() async {
+  Future<List<UserlocalDB>> getUsers() async {
     Database? db = await database;
     var data = await db!.rawQuery('SELECT * FROM Users');
-    List<User> users = List.generate(data.length, (index) => User.fromMap(data[index]));
+    List<UserlocalDB> users = List.generate(data.length, (index) => UserlocalDB.fromMap(data[index]));
     print(users.length);
     return users;
   }
 
-  Future<void> insertUser(User user) async {
+  Future<void> insertUser(UserlocalDB user) async {
     Database? db = await database;
     var data = await db!.rawInsert(
       'INSERT INTO Users(name, email, password,preferences) VALUES(?,?,?,?)',
@@ -114,7 +135,7 @@ class DatabaseService{
     log('inserted:: $data');
   }
 
-  Future<void> editUser(User user) async {
+  Future<void> editUser(UserlocalDB user) async {
     Database? db = await database;
     var data = await db!.rawUpdate(
       'UPDATE Users SET name=?, email=?, preferences=? WHERE id=?',
@@ -123,10 +144,24 @@ class DatabaseService{
     log('updated $data');
   }
 
-  Future<void> deleteUser(int id) async {
+  Future<void> deleteUser(String id) async {
     Database? db = await database;
     var data = await db!.rawDelete('DELETE FROM Users WHERE id=?', [id]);
     log('deleted $data');
+  }
+
+  Future<UserlocalDB?> getUserByEmail(String email) async {
+    Database? db = await database;
+    var result = await db!.query(
+      'Users',
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+
+    if (result.isNotEmpty) {
+      return UserlocalDB.fromMap(result.first);
+    }
+    return null;
   }
 
 //Events CRUD
@@ -220,117 +255,6 @@ class DatabaseService{
 //   }
 }
 
-
-
-
-// class DatabaseService {
-//   static final DatabaseService _databaseService = DatabaseService._internal();
-//
-//   factory DatabaseService() => _databaseService;
-//
-//   DatabaseService._internal();
-//
-//   static Database? _database;
-//
-//   Future<Database> get database async {
-//     if (_database != null) return _database!;
-//     _database = await initDatabase();
-//     return _database!;
-//   }
-//
-//
-//   Future initDatabase() async {
-//     // Get the platform-specific directory for storing application data
-//     final directory = Platform.isAndroid
-//         ? await getDatabasesPath() // Android-specific database path
-//         : Directory(
-//         '${Directory.current.path}/Documents')
-//         .path;
-//
-//     // Construct the path for your database
-//     String path = join(directory, 'Hedieaty.db');
-//     log('Database path: $path');
-//
-//     // Open the database
-//     return await openDatabase(path, onCreate: _onCreate, version: 1);
-//   }
-//
-//
-//
-//
-// }
-
-
-
-//
-//   Future<Database> openMyDatabase() async {
-//     return await openDatabase(
-//       // join method is used to join the path of the database with the path of the app's document directory.
-//         join(await getDatabasesPath(), 'HedieatyDatabase.db'),
-//         // The version of the database. This is used to manage database schema changes.
-//         version: 1,
-//         // onCreate is a callback function that is called ONLY when the database is created for the first time.
-//         onCreate: (db, version) {
-//           return db.execute(
-//             'CREATE TABLE todoList(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title TEXT, status  INTEGER)',
-//           );
-//           //Here we are creating a table named todoList with three columns: id, title, and status.
-//           //The id column is the primary key and is set to autoincrement.
-//           //We use INTEGER for the status column because SQLite does not have a boolean data type.
-//           //Instead, we use 0 for false and 1 for true.
-//         });
-//   }
-//
-//   Future<void> insertTask(String title, bool status) async {
-//     //db is the instance of the database that we get from the openMyDatabase function.
-//     final db = await openMyDatabase();
-//     //after getting the database instance, we insert the task into the todoList table.
-//     //insert method takes three arguments: the name of the table, the data to be inserted, and the conflictAlgorithm.
-//     //data is a map with the column names as keys and the values to be inserted as values.
-//     //We use ConflictAlgorithm.replace to replace the task if it already exists.
-//     //here we don't need to insert the id column because it is set to autoincrement.
-//     db.insert(
-//         'todoList',
-//         {
-//           'title': title,
-//           'status': status ? 1 : 0,
-//           //We use 1 for true and 0 for false.
-//         },
-//         conflictAlgorithm: ConflictAlgorithm.replace);
-//   }
-//
-//   Future<void> deleteTask(int id) async {
-//     final db = await openMyDatabase();
-//     //delete method takes two arguments: the name of the table and the where clause.
-//     //we are using unique id for each task as the where clause to delete the task with the given id.
-//     db.delete('todoList', where: 'id = ?', whereArgs: [id]);
-//   }
-//
-//   Future<void> updateTask(int id, bool status) async {
-//     final db = await openMyDatabase();
-//     //update method takes four arguments: the name of the table, the data to be updated, the where clause, and the whereArgs.
-//     //In this case, we are updating the status of the task with the given id.
-//     db.update(
-//         'todoList',
-//         {
-//           'status': status ? 1 : 0,
-//           //We use 1 for true and 0 for false.
-//         },
-//         where: 'id = ?',
-//         whereArgs: [id]);
-//   }
-//
-//   Future<List<Map<String, dynamic>>> getTasks() async {
-//     final db = await openMyDatabase();
-//     //query method is used to get the tasks from the todoList table.
-//     //It takes the name of the table as an argument.
-//     //and returns a list of maps where each map represents a task.
-//     //like [{id: 1, title: 'Task 1', status: 1}, {id: 2, title: 'Task 2', status: 0}]
-//     return await db.query('todoList');
-//   }
-// }
-//
-// }
 
 
 

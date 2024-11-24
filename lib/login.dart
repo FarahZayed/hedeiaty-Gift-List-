@@ -1,11 +1,15 @@
 import 'dart:io';
+import 'dart:math';
 import 'dart:ui';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/db.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hedieaty/models/userModel.dart';
+
 
 
 class loginPage extends StatefulWidget {
@@ -34,76 +38,146 @@ class _loginPageState extends State<loginPage> {
     }
   }
 
-  Future<void> _login() async {
-    String email = emailController.text.trim();
-    String password = passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter both email and password")),
-      );
-      return;
-    }
+//login with local DB
+  // Future<void> _login() async {
+  //   String email = emailController.text.trim();
+  //   String password = passwordController.text.trim();
+  //
+  //   if (email.isEmpty || password.isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text("Please enter both email and password")),
+  //     );
+  //     return;
+  //   }
+  //
+  //   final users = await dbService.getUsers();
+  //   User? user;
+  //
+  //   try {
+  //     user = users.firstWhere(
+  //           (user) => user.email == email && user.password == password,
+  //     );
+  //   } catch (e) {
+  //     user = null; // No user matches the criteria
+  //   }
+  //
+  //   if (user != null) {
+  //     Navigator.pushReplacementNamed(context, "/home",arguments: user);
+  //   } else {
+  //
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text("Invalid email or password")),
+  //     );
+  //   }
+  // }
 
-    final users = await dbService.getUsers();
-    User? user;
+  //signup with local DB
+  // Future<void> _signUp() async {
+  //   String email = emailController.text.trim();
+  //   String password = passwordController.text.trim();
+  //   String username = usernameController.text.trim();
+  //
+  //   if (email.isEmpty || password.isEmpty || username.isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text("Please fill in all the fields")),
+  //     );
+  //     return;
+  //   }
+  //
+  //   final newUser = User(
+  //     id: 0,
+  //     name: username,
+  //     email: email,
+  //     password: password,
+  //     preferences: "None",
+  //   );
+  //
+  //   await dbService.insertUser(newUser);
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     const SnackBar(content: Text("Signup successful! Please log in.")),
+  //   );
+  //
+  //
+  //   usernameController.clear();
+  //   emailController.clear();
+  //   passwordController.clear();
+  //   setState(() {
+  //     isLogin = true;
+  //   });
+  // }
 
+  //login with firebase
+  Future<void> _logIn() async {
     try {
-      user = users.firstWhere(
-            (user) => user.email == email && user.password == password,
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
       );
-    } catch (e) {
-      user = null; // No user matches the criteria
-    }
+      final firebaseUser = userCredential.user;
+      if (firebaseUser?.email != null) {
+        log(1);
+        final dbUser = await dbService.getUserByEmail(firebaseUser!.email!);
+        Navigator.pushReplacementNamed(context, "/home", arguments: dbUser);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to retrieve user email.')),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String message;
+      if (e.code == 'user-not-found') {
+        message = 'No user found for this email.';
+      } else if (e.code == 'wrong-password') {
+        message = 'Wrong password. Please try again.';
+      } else {
+        message = 'An error occurred: ${e.message}';
+      }
 
-    if (user != null) {
-      Navigator.pushReplacementNamed(context, "/home",arguments: user);
-    } else {
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid email or password")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
+  //signup with firebase auth
   Future<void> _signUp() async {
-    String email = emailController.text.trim();
-    String password = passwordController.text.trim();
-    String username = usernameController.text.trim();
-
-    if (email.isEmpty || password.isEmpty || username.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill in all the fields")),
+    try {
+      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
       );
-      return;
+      final firebaseUser = userCredential.user;
+
+      if (firebaseUser != null) {
+        final dbUser = UserlocalDB(
+          id: firebaseUser.uid!,
+          name: usernameController.text.trim(),
+          email: firebaseUser.email!,
+          preferences: "None",
+        );
+        Navigator.pushReplacementNamed(context, "/home", arguments: dbUser);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Signup successful!.")),      );
+      }
+
+      Navigator.pop(context); // Close the signup modal
+      emailController.clear();
+      passwordController.clear();
+    } on FirebaseAuthException catch (e) {
+      String message = e.code == 'email-already-in-use'
+          ? 'Email already in use. Please use a different email.'
+          : 'An error occurred: ${e.message}';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
-
-    final newUser = User(
-      id: 0,
-      name: username,
-      email: email,
-      password: password,
-      preferences: "None",
-    );
-
-    await dbService.insertUser(newUser);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Signup successful! Please log in.")),
-    );
-
-
-    usernameController.clear();
-    emailController.clear();
-    passwordController.clear();
-    setState(() {
-      isLogin = true;
-    });
   }
+
+
+
 
   void _showSignUpModal() {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Allows modal to take up more space
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
@@ -338,7 +412,7 @@ class _loginPageState extends State<loginPage> {
                           borderRadius: BorderRadius.circular(20.0),
                         ),
                         child: ElevatedButton(
-                          onPressed: _login,
+                          onPressed: _logIn,
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 16.0),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
