@@ -4,29 +4,56 @@ import 'package:intl/intl.dart';
 import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/appBar.dart';
 import 'package:hedieaty/manageEvents.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hedieaty/db.dart';
 
 class eventList extends StatefulWidget {
-  final int friendId;
+  final String userId;
 
-  const eventList({super.key, required this.friendId });
+  const eventList({super.key, required this.userId });
 
   @override
   State<eventList> createState() => _eventListState();
 }
 
 class _eventListState extends State<eventList> {
-  late List<Map<String, dynamic>>events;
+  late List<String> eventsId;
+  late List<Map<String, dynamic>> events;
   late bool isLoggedIn;
   String sortOption = '';
 
   @override
   void initState() {
     super.initState();
-    events = MockDatabase.getEventsByFriendId(widget.friendId);
-    var friend = MockDatabase.friends.firstWhere((friend) => friend['id'] == widget.friendId);
-    isLoggedIn = friend['isLoggedin'];
+    _fetchUserAndEvents();
+  }
 
+  Future<void> _fetchUserAndEvents() async {
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+
+      if (userDoc.exists) {
+        eventsId = List<String>.from(userDoc.data()?['eventIds'] ?? []);
+        isLoggedIn = true;
+
+        events = [];
+        for (String eventId in eventsId) {
+          final eventDoc = await FirebaseFirestore.instance.collection('event').doc(eventId).get();
+          if (eventDoc.exists) {
+            final eventData = eventDoc.data()!;
+            eventData['id'] = eventId;
+            events.add(eventData);
+          }
+        }
+
+        // Sort or process events if needed
+        setState(() {});
+      } else {
+        print("User not found");
+      }
+    } catch (e) {
+      print("Error fetching user and events: $e");
+    }
   }
 
 
@@ -44,33 +71,110 @@ class _eventListState extends State<eventList> {
     });
   }
 
-  void addEvent(String name, String category, String status,DateTime date) {
-    setState(() {
-      events.add({
+  Future<void> addEvent(String name, String category, String status, DateTime date, String location ,String description) async {
+    try {
+      final newEventRef = FirebaseFirestore.instance.collection('events').doc();
+      await newEventRef.set({
         'name': name,
         'category': category,
         'status': status,
-        'date':date
+        'description': description,
+        'location': location??"",
+        'date': date.toString(),
+        'userId': widget.userId,
       });
-    });
+
+      await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
+        'eventIds': FieldValue.arrayUnion([newEventRef.id])
+      });
+
+      // Add the new event locally
+      setState(() {
+        events.add({
+          'id': newEventRef.id,
+          'name': name,
+          'category': category,
+          'location':location,
+          'description':description,
+          'status': status,
+          'date': date,
+          'userId': widget.userId,
+        });
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Event added successfully.")),
+      );
+    } catch (e) {
+      print("Error adding event: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error adding event: $e")),
+      );
+    }
   }
 
-  void editEvent(int index, String newName, String newCategory,  String newStatus, DateTime newDate ) {
-    setState(() {
-      events[index] = {
-        'name': newName,
-        'category': newCategory,
-        'status': newStatus,
-        'date':newDate
-      };
-    });
+
+  Future<void> editEvent(String eventId, String name, String category, String status, DateTime date, String location ,String description) async {
+    try {
+      await FirebaseFirestore.instance.collection('events').doc(eventId).update({
+        'name': name,
+        'category': category,
+        'location':location,
+        'description':description,
+        'status': status,
+        'date': date,
+      });
+
+      setState(() {
+        int index = events.indexWhere((event) => event['id'] == eventId);
+        if (index != -1) {
+          events[index] = {
+            'name': name,
+            'category': category,
+            'location':location,
+            'description':description,
+            'status': status,
+            'date': date,
+          };
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Event updated successfully.")),
+      );
+    } catch (e) {
+      print("Error updating event: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error updating event: $e")),
+      );
+    }
   }
 
-  void deleteEvent(int index) {
-    setState(() {
-      events.removeAt(index);
-    });
+
+  Future<void> deleteEvent(String eventId) async {
+    try {
+      await FirebaseFirestore.instance.collection('events').doc(eventId).delete();
+
+      await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
+        'eventIds': FieldValue.arrayRemove([eventId])
+      });
+
+
+      setState(() {
+        events.removeWhere((event) => event['id'] == eventId);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Event deleted successfully.")),
+      );
+    } catch (e) {
+      print("Error deleting event: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error deleting event: $e")),
+      );
+    }
   }
+
 
 
   // void showEditDialog(int index) {
@@ -123,18 +227,32 @@ class _eventListState extends State<eventList> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => mangeEventsPage(event: event),
+        builder: (context) => ManageEventsPage(event: event),
       ),
     );
 
     if (result != null) {
       if (event != null) {
 
-        int index = events.indexOf(event);
-        editEvent(index, result['name'], result['category'], result['status'],result['date']);
+        await editEvent(
+          event['id'],
+          result['name'],
+          result['category'],
+          result['status'],
+          DateTime.parse(result['date']),
+          result['location'],
+          result['description'],
+        );
       } else {
 
-        addEvent(result['name'], result['category'], result['status'], result['date']);
+        await addEvent(
+          result['name'],
+          result['category'],
+          result['status'],
+          DateTime.parse(result['date']),
+          result['location'],
+          result['description'],
+        );
       }
     }
   }
@@ -184,7 +302,11 @@ class _eventListState extends State<eventList> {
         children: [
           const Padding(padding: EdgeInsets.only(top: 10.0)),
           Expanded(
-            child: ListView.builder(
+            child: events.isEmpty?
+                Container(
+                  child: Center(child: Text("You have no events")),
+                ):
+            ListView.builder(
               itemCount: events.length,
               itemBuilder: (context, index) {
                 var event = events[index];
@@ -196,25 +318,77 @@ class _eventListState extends State<eventList> {
                   ),
                   child: ListTile(
                     title: Text(event['name']),
-                    subtitle: Text(DateFormat('yyyy-MM-dd').format(event['date']), style: TextStyle(color: myAppColors.correctColor)),
+                    subtitle: Text(
+                      DateFormat('yyyy-MM-dd').format(DateTime.parse(event['date'])),
+                      style: TextStyle(color: myAppColors.correctColor),
+                    ),
                     onTap: isLoggedIn ? () {
                       goToEditEvents(event: event);
                     } : null,
+                    onLongPress: (){
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text(event['name']),
+                            content: SingleChildScrollView(
+                              child: ListBody(
+                                children: <Widget>[
+                                  ListTile(
+                                    leading: Icon(Icons.category),
+                                    title: Text('Category'),
+                                    subtitle: Text(event['category']?? null),
+                                  ),
+                                  ListTile(
+                                    leading: Icon(Icons.info),
+                                    title: Text('Status'),
+                                    subtitle: Text(event['status']?? null),
+                                  ),
+                                  ListTile(
+                                    leading: Icon(Icons.description),
+                                    title: Text('Description'),
+                                    subtitle: Text(event['description']?? null),
+                                  ),
+                                  ListTile(
+                                    leading: Icon(Icons.location_on),
+                                    title: Text('Location'),
+                                    subtitle: Text(event['location']?? null),
+                                  ),
+                                  ListTile(
+                                    leading: Icon(Icons.date_range),
+                                    title: Text('Date'),
+                                    subtitle: Text(DateFormat('yyyy-MM-dd').format(DateTime.parse(event['date']))),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            actions: <Widget>[
+                              TextButton(
+                                child: Text('Close'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
                     trailing:  isLoggedIn? IconButton(
                       icon: const Icon(Icons.delete, color: myAppColors.primColor),
                       onPressed: () {
-                        deleteEvent(index);},)
+                        deleteEvent(event['id']);},)
                     : IconButton(
                       icon: const Icon(Icons.arrow_forward_ios_rounded, color: myAppColors.primColor,),
                       onPressed: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/giftList',
-                          arguments: {
-                            'friendId': widget.friendId,
-                            'eventId': event['id'],
-                          },
-                        );
+                        // Navigator.pushNamed(
+                        //   context,
+                        //   '/giftList',
+                        //   arguments: {
+                        //     'friendId': widget.friendId,
+                        //     'eventId': event['id'],
+                        //   },
+                        // );
 
                       },
                     ),

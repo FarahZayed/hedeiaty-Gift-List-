@@ -55,14 +55,11 @@ class _MyAppState extends State<MyApp> {
       themeMode: _themeMode,
        home:const loginPage(),
       routes: {
+        "/login":(context)=>loginPage(),
         "/home":(context)=>HomeScreen(onThemeToggle: _toggleTheme),
-        "/eventList":(context) {
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
-          return eventList(
-            friendId: args['friendId'],
+        "/eventList":(context) =>eventList(
+            userId: ModalRoute.of(context)?.settings.arguments as String,),
 
-          );
-        },
         '/giftList': (context) {
           final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
           return giftList(
@@ -74,7 +71,11 @@ class _MyAppState extends State<MyApp> {
         "/profile":(context)=>profilePage(),
         "/pledgedGifts":(context)=>pledgedGiftsPage(),
         "/friendGiftPage":(context)=>friendGiftPage(friendName: ModalRoute.of(context)?.settings.arguments as String),
-        "/mangeEventsPage":(context)=> mangeEventsPage(),
+        "/mangeEventsPage":(context){
+              final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
+              return ManageEventsPage(
+              event: args['event'],);
+        },
 
       },
 

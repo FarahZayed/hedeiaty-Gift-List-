@@ -7,8 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/db.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hedieaty/models/userModel.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 
 
@@ -110,18 +112,44 @@ class _loginPageState extends State<loginPage> {
   //login with firebase
   Future<void> _logIn() async {
     try {
+      if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please enter email and password.")),
+        );
+        return;
+      }
+
+      // Firebase Authentication
       final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
+
       final firebaseUser = userCredential.user;
-      if (firebaseUser?.email != null) {
-        log(1);
-        final dbUser = await dbService.getUserByEmail(firebaseUser!.email!);
-        Navigator.pushReplacementNamed(context, "/home", arguments: dbUser);
+      print("uid:: "+ firebaseUser!.uid);
+
+      if (firebaseUser != null) {
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(firebaseUser.uid).get();
+
+        if (userDoc.exists) {
+          final data = userDoc.data()!;
+
+          // final dbUser = UserlocalDB(
+          //   id: firebaseUser.uid.hashCode.toString(),
+          //   name: data['username'] ?? '',
+          //   email: firebaseUser.email!,
+          //   preferences: "None",
+          // );
+
+          Navigator.pushReplacementNamed(context, "/home", arguments: data);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("User data not found in Firestore.")),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to retrieve user email.')),
+          const SnackBar(content: Text("Failed to authenticate user.")),
         );
       }
     } on FirebaseAuthException catch (e) {
@@ -138,31 +166,51 @@ class _loginPageState extends State<loginPage> {
     }
   }
 
+
+
   //signup with firebase auth
   Future<void> _signUp() async {
     try {
+      if (emailController.text.isEmpty || passwordController.text.isEmpty || usernameController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please fill in all fields.")),
+        );
+        return;
+      }
+
+      // Firebase Authentication
       final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
+
       final firebaseUser = userCredential.user;
 
       if (firebaseUser != null) {
-        final dbUser = UserlocalDB(
-          id: firebaseUser.uid!,
-          name: usernameController.text.trim(),
-          email: firebaseUser.email!,
-          preferences: "None",
-        );
-        Navigator.pushReplacementNamed(context, "/home", arguments: dbUser);
+        final userDoc = FirebaseFirestore.instance.collection('users').doc(firebaseUser.uid);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Signup successful!.")),      );
+        final Map<String ,dynamic> userData = {
+          'uid': firebaseUser.uid,
+          'username': usernameController.text.trim(),
+          'email': firebaseUser.email,
+          'phone': null,
+          'photoURL': profileImage != null ? firebaseUser.photoURL : null,
+          'eventIds': [],
+          'friendIds': [],
+        };
+
+        await userDoc.set(userData);
+        emailController.clear();
+        passwordController.clear();
+        usernameController.clear();
+        Navigator.pushReplacementNamed(context, "/home", arguments: userData);
+
+
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   const SnackBar(content: Text("Signup successful! Redirecting to Home...")),
+        // );
       }
 
-      Navigator.pop(context); // Close the signup modal
-      emailController.clear();
-      passwordController.clear();
     } on FirebaseAuthException catch (e) {
       String message = e.code == 'email-already-in-use'
           ? 'Email already in use. Please use a different email.'
@@ -170,6 +218,8 @@ class _loginPageState extends State<loginPage> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
   }
+
+
 
 
 
@@ -207,68 +257,21 @@ class _loginPageState extends State<loginPage> {
                   radius: 50.0,
                   backgroundImage: profileImage != null
                       ? FileImage(profileImage!)
-                     : const AssetImage("asset/profile.png")
-                  as ImageProvider,
+                      : const AssetImage("asset/profile.png") as ImageProvider,
                   child: profileImage == null
                       ? const Icon(Icons.add_a_photo, size: 30, color: Colors.white)
                       : null,
                 ),
               ),
               const SizedBox(height: 16.0),
-              // Username Field
-              TextField(
-                controller: usernameController,
-                decoration: InputDecoration(
-                  labelText: 'Username',
-                  labelStyle: const TextStyle(color: myAppColors.darkBlack),
-                  filled: true,
-                  fillColor: Colors.grey.withOpacity(0.1),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                    borderSide: BorderSide.none,
-                  ),
-                  prefixIcon: const Icon(Icons.person, color: myAppColors.darkBlack),
-                ),
-              ),
+              _buildTextField(controller: usernameController, label: "Username", icon: Icons.person),
               const SizedBox(height: 16.0),
-              // Email Field
-              TextField(
-                controller: emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  labelStyle: const TextStyle(color: myAppColors.darkBlack),
-                  filled: true,
-                  fillColor: Colors.grey.withOpacity(0.1),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                    borderSide: BorderSide.none,
-                  ),
-                  prefixIcon: const Icon(Icons.email, color: myAppColors.darkBlack),
-                ),
-              ),
+              _buildTextField(controller: emailController, label: "Email", icon: Icons.email),
               const SizedBox(height: 16.0),
-              // Password Field
-              TextField(
-                controller: passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  labelStyle: const TextStyle(color: myAppColors.darkBlack),
-                  filled: true,
-                  fillColor: Colors.grey.withOpacity(0.1),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                    borderSide: BorderSide.none,
-                  ),
-                  prefixIcon: const Icon(Icons.lock, color: myAppColors.darkBlack),
-                ),
-                obscureText: true,
-              ),
+              _buildTextField(controller: passwordController, label: "Password", icon: Icons.lock, isPassword: true),
               const SizedBox(height: 24.0),
               ElevatedButton(
-                onPressed: () async {
-                  await _signUp();
-                  Navigator.pop(context);
-                },
+                onPressed: _signUp,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 16.0),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
@@ -286,6 +289,30 @@ class _loginPageState extends State<loginPage> {
     );
   }
 
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool isPassword = false,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: isPassword,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: myAppColors.darkBlack),
+        filled: true,
+        fillColor: Colors.grey.withOpacity(0.1),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.0),
+          borderSide: BorderSide.none,
+        ),
+        prefixIcon: Icon(icon, color: myAppColors.darkBlack),
+      ),
+    );
+  }
+
+
 
 
   @override
@@ -293,7 +320,6 @@ class _loginPageState extends State<loginPage> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Image with Blur Effect
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(

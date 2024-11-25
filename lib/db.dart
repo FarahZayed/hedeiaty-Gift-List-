@@ -25,7 +25,6 @@ class DatabaseService{
   }
 
   Future<Database> initialize() async {
-    // Get the database path
     String mypath = await getDatabasesPath();
     String path = join(mypath, 'database.db');
 
@@ -35,7 +34,7 @@ class DatabaseService{
       version: version,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
-      onConfigure: _onConfigure,
+      //onConfigure: _onConfigure,
     );
 
     return mydb;
@@ -102,10 +101,10 @@ class DatabaseService{
     await _onCreate(db, version);
   }
 
-  Future<void> _onConfigure(Database db) async {
-    log('Configuring Database: Dropping Existing Database\n');
-    await _dropAllTables(db);
-  }
+  // Future<void> _onConfigure(Database db) async {
+  //   log('Configuring Database: Dropping Existing Database\n');
+  //   await _dropAllTables(db);
+  // }
 
   Future<void> _dropAllTables(Database db) async {
     log('Dropping Tables\n');
@@ -152,16 +151,19 @@ class DatabaseService{
 
   Future<UserlocalDB?> getUserByEmail(String email) async {
     Database? db = await database;
-    var result = await db!.query(
+    List<Map<String, dynamic>> result = await db!.query(
       'Users',
       where: 'email = ?',
       whereArgs: [email],
     );
 
     if (result.isNotEmpty) {
+      print("User found in DB: ${result.first}");
       return UserlocalDB.fromMap(result.first);
+    } else {
+      print("No user found with email: $email");
+      return null;
     }
-    return null;
   }
 
 //Events CRUD

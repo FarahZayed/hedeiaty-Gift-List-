@@ -2,20 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:hedieaty/appBar.dart';
 import 'package:hedieaty/colors.dart'; // Assuming you have this for your theme colors
 
-class mangeEventsPage extends StatefulWidget {
+class ManageEventsPage extends StatefulWidget {
   final Map<String, dynamic>? event;
-  const mangeEventsPage({super.key, this.event});
+
+  const ManageEventsPage({super.key, this.event});
 
   @override
-  _manageEventPageState createState() => _manageEventPageState();
+  _ManageEventsPageState createState() => _ManageEventsPageState();
 }
 
-
-class _manageEventPageState extends State<mangeEventsPage> {
+class _ManageEventsPageState extends State<ManageEventsPage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController categoryController = TextEditingController();
   final TextEditingController statusController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
+  final TextEditingController locationController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -24,179 +26,85 @@ class _manageEventPageState extends State<mangeEventsPage> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
-    if (picked != null && picked != DateTime.tryParse(dateController.text)) {
+    if (picked != null) {
       setState(() {
-        dateController.text = picked.toString().split(' ')[0]; // Format the date as yyyy-MM-dd
+        dateController.text = picked.toIso8601String().split('T')[0];
       });
     }
   }
 
-  Widget _buildDateField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    required BuildContext context,
-  }) {
-    return TextField(
-      controller: controller,
-      readOnly: true,
-      onTap: () => _selectDate(context),
-      decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: myAppColors.primColor),
-        labelText: label,
-        labelStyle: TextStyle(
-          color: myAppColors.primColor,
-          fontWeight: FontWeight.bold,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: myAppColors.primColor),
-          borderRadius: BorderRadius.circular(15),
-        ),
-      ),
-    );
-  }
-
-
   @override
   void initState() {
     super.initState();
-    // in case it is editing
     if (widget.event != null) {
       nameController.text = widget.event!['name'];
       categoryController.text = widget.event!['category'];
-      dateController.text = widget.event!['date'].toString();
       statusController.text = widget.event!['status'];
+      dateController.text = widget.event!['date'];
+      locationController.text = widget.event!['location'] ?? '';
+      descriptionController.text = widget.event!['description'] ?? '';
     }
-  }
-
-  void saveEvent() {
-    // Will implement to change or add in DB
-    final newEvent = {
-      'name': nameController.text,
-      'category': categoryController.text,
-      'date': DateTime.tryParse(dateController.text) ?? 0,
-      'status': statusController.text,
-    };
-    Navigator.pop(context, newEvent);
   }
 
   @override
   Widget build(BuildContext context) {
-    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    bool isEditMode = widget.event != null;
 
     return Scaffold(
-      appBar: CustomAppBar(
-        title: widget.event != null ? 'Edit Event' : 'Add Event',
-        isDarkMode: isDarkMode,
+      appBar: AppBar(
+        title: Text(isEditMode ? 'Edit Event' : 'Add Event'),
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTextField(
-                        controller: nameController,
-                        label: 'Event Name',
-                        icon: Icons.event,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        controller: categoryController,
-                        label: 'Category',
-                        icon: Icons.category,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        controller: statusController,
-                        label: 'Status',
-                        icon: Icons.add_circle_outline,
-
-                      ),
-                      const SizedBox(height: 16),
-                      _buildDateField(
-                        controller: dateController,
-                        label: 'Date',
-                        icon: Icons.date_range_outlined,
-                        context: context,
-                      ),
-                    ],
-                  ),
-                ),
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            _buildTextField(nameController, 'Event Name', Icons.event),
+            const SizedBox(height: 16),
+            _buildTextField(categoryController, 'Category', Icons.category),
+            const SizedBox(height: 16),
+            _buildTextField(statusController, 'Status', Icons.info),
+            const SizedBox(height: 16),
+            TextField(
+              controller: dateController,
+              readOnly: true,
+              decoration: InputDecoration(
+                labelText: 'Date',
+                prefixIcon: const Icon(Icons.calendar_today),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
-
-              const SizedBox(height: 20),
-
-              // Pledge Status Card
-
-
-              // Save Button
-              Center(
-                child: ElevatedButton(
-                  onPressed: saveEvent,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: myAppColors.primColor,
-                    foregroundColor: isDarkMode
-                        ? myAppColors.darkBlack
-                        : myAppColors.lightWhite,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20.0),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 15,
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  child: Text(widget.event != null ? 'Update Event' : 'Add Event'),
-                ),
-              ),
-            ],
-          ),
+              onTap: () => _selectDate(context),
+            ),
+            const SizedBox(height: 16),
+            _buildTextField(locationController, 'Location', Icons.location_on),
+            const SizedBox(height: 16),
+            _buildTextField(descriptionController, 'Description', Icons.description),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, {
+                  'name': nameController.text.trim(),
+                  'category': categoryController.text.trim(),
+                  'status': statusController.text.trim(),
+                  'date': dateController.text.trim(),
+                  'location': locationController.text.trim(),
+                  'description': descriptionController.text.trim(),
+                });
+              },
+              child: Text(isEditMode ? 'Save Changes' : 'Add Event'),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon) {
     return TextField(
       controller: controller,
-      keyboardType: keyboardType,
       decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: myAppColors.primColor),
         labelText: label,
-        labelStyle: TextStyle(
-          color: myAppColors.primColor,
-          fontWeight: FontWeight.bold,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: myAppColors.primColor),
-          borderRadius: BorderRadius.circular(15),
-        ),
+        prefixIcon: Icon(icon),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
