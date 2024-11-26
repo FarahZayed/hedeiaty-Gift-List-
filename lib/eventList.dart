@@ -6,21 +6,20 @@ import 'package:hedieaty/appBar.dart';
 import 'package:hedieaty/manageEvents.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-
 class eventList extends StatefulWidget {
   final String userId;
-
-  const eventList({super.key, required this.userId });
+  final bool isLoggedIn;
+  const eventList({super.key, required this.userId, required this.isLoggedIn});
 
   @override
   State<eventList> createState() => _eventListState();
 }
 
+
 class _eventListState extends State<eventList> {
   late List<String> eventsId;
-  late List<Map<String, dynamic>> events= [];
-  late bool isLoggedIn;
-  String sortOption = '';
+  late List<Map<String, dynamic>> originalEvents = [];
+
 
   @override
   void initState() {
@@ -34,19 +33,19 @@ class _eventListState extends State<eventList> {
 
       if (userDoc.exists) {
         eventsId = List<String>.from(userDoc.data()?['eventIds'] ?? []);
-        isLoggedIn = true;
 
-        events = [];
+        originalEvents = [];
         for (String eventId in eventsId) {
           final eventDoc = await FirebaseFirestore.instance.collection('event').doc(eventId).get();
           if (eventDoc.exists) {
             final eventData = eventDoc.data()!;
-            events.add({
+            originalEvents.add({
               ...eventData,
-              'id': eventId, // Explicitly add the document ID
+              'id': eventId,
             });
           }
         }
+
 
         setState(() {});
       } else {
@@ -57,22 +56,44 @@ class _eventListState extends State<eventList> {
     }
   }
 
-
-
-
-  void sortEvents(String option) {
+  //sort events
+  void sortEvents(String option) async{
+    String sortOption = '';
+    await _fetchUserAndEvents();
     setState(() {
       sortOption = option;
+
       if (option == 'name') {
-        events.sort((a, b) => a['name'].compareTo(b['name']));
+        originalEvents.sort((a, b) => a['name'].toLowerCase().compareTo(b['name'].toLowerCase()));
       } else if (option == 'category') {
-        events.sort((a, b) => a['category'].compareTo(b['category']));
-      } else if (option == 'status') {
-        events.sort((a, b) => a['status'].compareTo(b['status']));
+        originalEvents.sort((a, b) => a['category'].toLowerCase().compareTo(b['category'].toLowerCase()));
+      } else if (option == 'all') {
+        _fetchUserAndEvents();
+      } else if (option == 'current') {
+        originalEvents = originalEvents.where((event) {
+          DateTime eventDate = DateTime.parse(event['date']);
+          DateTime today = DateTime.now();
+          return eventDate.year == today.year && eventDate.month == today.month && eventDate.day == today.day;
+        }).toList();
+      } else if (option == 'past') {
+        originalEvents = originalEvents.where((event) {
+          DateTime eventDate = DateTime.parse(event['date']);
+          DateTime today = DateTime.now();
+          return DateTime(eventDate.year, eventDate.month, eventDate.day).isBefore(DateTime(today.year, today.month, today.day));
+        }).toList();
+        originalEvents.sort((a, b) => DateTime.parse(a['date']).compareTo(DateTime.parse(b['date'])));
+      } else if (option == 'upcoming') {
+        originalEvents = originalEvents.where((event) {
+          DateTime eventDate = DateTime.parse(event['date']);
+          DateTime today = DateTime.now();
+          return DateTime(eventDate.year, eventDate.month, eventDate.day).isAfter(DateTime(today.year, today.month, today.day));
+        }).toList();
+        originalEvents.sort((a, b) => DateTime.parse(a['date']).compareTo(DateTime.parse(b['date'])));
       }
     });
   }
 
+  //add event
   Future<void> addEvent(String name, String category, String status, DateTime date, String location ,String description) async {
     try {
       final newEventRef = FirebaseFirestore.instance.collection('event').doc();
@@ -89,10 +110,10 @@ class _eventListState extends State<eventList> {
       await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
         'eventIds': FieldValue.arrayUnion([newEventRef.id])
       });
-      print("new ref id::"+newEventRef.id);
-      // Add the new event locally
+
+
       setState(() {
-        events.add({
+        originalEvents.add({
           'id': newEventRef.id,
           'name': name,
           'category': category,
@@ -115,7 +136,7 @@ class _eventListState extends State<eventList> {
     }
   }
 
-
+  // edit event
   Future<void> editEvent(String eventId, String name, String category, String status, DateTime date, String location ,String description) async {
     try {
       await FirebaseFirestore.instance.collection('event').doc(eventId).update({
@@ -128,9 +149,9 @@ class _eventListState extends State<eventList> {
       });
 
       setState(() {
-        int index = events.indexWhere((event) => event['id'] == eventId);
+        int index = originalEvents.indexWhere((event) => event['id'] == eventId);
         if (index != -1) {
-          events[index] = {
+          originalEvents[index] = {
             'name': name,
             'category': category,
             'location':location,
@@ -152,10 +173,10 @@ class _eventListState extends State<eventList> {
     }
   }
 
-
+  // delete event
   Future<void> deleteEvent(String eventId) async {
     try {
-      print("strin id:: "+eventId);
+
       await FirebaseFirestore.instance.collection('event').doc(eventId).delete();
 
       await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
@@ -164,7 +185,7 @@ class _eventListState extends State<eventList> {
 
 
       setState(() {
-        events.removeWhere((event) => event['id'] == eventId);
+        originalEvents.removeWhere((event) => event['id'] == eventId);
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -226,6 +247,8 @@ class _eventListState extends State<eventList> {
   //     },
   //   );
   // }
+
+  //direct to mange event page
   void goToEditEvents({Map<String, dynamic>? event}) async {
     final result = await Navigator.push(
       context,
@@ -272,10 +295,14 @@ class _eventListState extends State<eventList> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.filter_list, color: myAppColors.darkBlack),
             onSelected: (String value) {
-              // Handle filter selection
+              sortEvents(value);
             },
             itemBuilder: (BuildContext context) {
               return [
+                const PopupMenuItem<String>(
+                  value: 'all',
+                  child: Text('Get all the events'),
+                ),
                 const PopupMenuItem<String>(
                   value: 'name',
                   child: Text('Sort by Name'),
@@ -305,14 +332,14 @@ class _eventListState extends State<eventList> {
         children: [
           const Padding(padding: EdgeInsets.only(top: 10.0)),
           Expanded(
-            child: events.isEmpty?
+            child: originalEvents.isEmpty?
                 Container(
                   child: Center(child: Text("You have no events")),
                 ):
             ListView.builder(
-              itemCount: events.length,
+              itemCount: originalEvents.length,
               itemBuilder: (context, index) {
-                var event = events[index];
+                var event = originalEvents[index];
                 return Card(
                   margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                   elevation: 4.0,
@@ -325,7 +352,7 @@ class _eventListState extends State<eventList> {
                       DateFormat('yyyy-MM-dd').format(DateTime.parse(event['date'])),
                       style: TextStyle(color: myAppColors.correctColor),
                     ),
-                    onTap: isLoggedIn ? () {
+                    onTap: widget.isLoggedIn ? () {
                       goToEditEvents(event: event);
                     } : null,
                     onLongPress: (){
@@ -377,11 +404,9 @@ class _eventListState extends State<eventList> {
                         },
                       );
                     },
-                    trailing:  isLoggedIn? IconButton(
+                    trailing:  widget.isLoggedIn ? IconButton(
                       icon: const Icon(Icons.delete, color: myAppColors.primColor),
                       onPressed: () {
-                        print("Event to delete: $event");
-                        print("imsides::"+event['id'].toString());
                         deleteEvent(event['id'].toString());},)
                     : IconButton(
                       icon: const Icon(Icons.arrow_forward_ios_rounded, color: myAppColors.primColor,),
@@ -405,7 +430,7 @@ class _eventListState extends State<eventList> {
         ],
       ),
       floatingActionButton: Visibility(
-        visible: isLoggedIn,
+        visible: widget.isLoggedIn ,
         child: FloatingActionButton(
           onPressed: () {
             goToEditEvents();

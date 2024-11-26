@@ -57,8 +57,13 @@ class _MyAppState extends State<MyApp> {
       routes: {
         "/login":(context)=>loginPage(),
         "/home":(context)=>HomeScreen(onThemeToggle: _toggleTheme),
-        "/eventList":(context) =>eventList(
-            userId: ModalRoute.of(context)?.settings.arguments as String,),
+        "/eventList": (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
+          return eventList(
+            userId: args['userId'],
+            isLoggedIn: args['isLoggedIn'],
+          );
+        },
 
         '/giftList': (context) {
           final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;

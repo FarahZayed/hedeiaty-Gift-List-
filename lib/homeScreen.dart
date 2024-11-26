@@ -209,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await FirebaseFirestore.instance.collection('users').doc(userId).update({
         'eventIds': FieldValue.arrayUnion([newEventRef.id])
       });
-      print("new ref id::"+newEventRef.id);
+
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Event added successfully.")),
@@ -290,7 +290,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ListTile(
                 leading: const Icon(Icons.event, color: myAppColors.primColor),
                 title: const Text('My Events'),
-                onTap: () => Navigator.pushNamed(context, "/eventList", arguments: user['uid']),
+                onTap: () => Navigator.pushNamed(
+                  context,
+                  "/eventList",
+                  arguments: {
+                    'userId': user['uid'],
+                    'isLoggedIn': true,
+                  },
+                ),
               ),
               ListTile(
                 leading: const Icon(Icons.card_giftcard_outlined, color: myAppColors.primColor),
@@ -364,7 +371,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     }
 
                     if (!snapshot.hasData || !snapshot.data!.exists) {
-                      return Center(child: Text('User not found'));
+                      return Center(child: Text('Friends not found'));
                     }
 
                     var friendData = snapshot.data!.data() as Map<String, dynamic>;
@@ -396,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         )
                             : null,
                         onTap: () {
-                          Navigator.pushNamed(context, "/eventList", arguments: {'friendId': friendData['id']});
+                          Navigator.pushNamed(context, "/eventList", arguments: {'userId': friendData['uid'],  'isLoggedIn': false,});
                         },
                       ),
                     );
