@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/appBar.dart';
 import 'package:hedieaty/db.dart';
+import 'package:hedieaty/manageEvents.dart';
 
-//import 'package:hedieaty/models/userModel.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:hedieaty/models/userModel.dart';
+
 
 //import 'package:contacts_service/contacts_service.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -191,6 +191,35 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+
+  Future<void> addEvent(String userId,String name, String category, String status, DateTime date, String location ,String description) async {
+    try {
+      final newEventRef = FirebaseFirestore.instance.collection('event').doc();
+      await newEventRef.set({
+        'name': name,
+        'category': category,
+        'status': status,
+        'description': description??"",
+        'location': location??"",
+        'date': date.toIso8601String(),
+        'userId': userId,
+      });
+
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'eventIds': FieldValue.arrayUnion([newEventRef.id])
+      });
+      print("new ref id::"+newEventRef.id);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Event added successfully.")),
+      );
+    } catch (e) {
+      print("Error adding event: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error adding event: $e")),
+      );
+    }
   }
 
 
@@ -398,7 +427,25 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             TextButton(
               onPressed: () async {
-                await Navigator.pushNamed(context, "/mangeEventsPage");
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ManageEventsPage(),
+                  ),
+                );
+
+                if (result != null) {
+                  // Extract event details from the result and save it
+                  await addEvent(
+                    user['uid'],
+                    result['name'],
+                    result['category'],
+                    result['status'],
+                    DateTime.parse(result['date']),
+                    result['location'],
+                    result['description'],
+                  );
+                }
               },
               child: Text(
                 "Create Event",

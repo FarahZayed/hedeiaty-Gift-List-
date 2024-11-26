@@ -5,7 +5,7 @@ import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/appBar.dart';
 import 'package:hedieaty/manageEvents.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:hedieaty/db.dart';
+
 
 class eventList extends StatefulWidget {
   final String userId;
@@ -18,7 +18,7 @@ class eventList extends StatefulWidget {
 
 class _eventListState extends State<eventList> {
   late List<String> eventsId;
-  late List<Map<String, dynamic>> events;
+  late List<Map<String, dynamic>> events= [];
   late bool isLoggedIn;
   String sortOption = '';
 
@@ -41,12 +41,13 @@ class _eventListState extends State<eventList> {
           final eventDoc = await FirebaseFirestore.instance.collection('event').doc(eventId).get();
           if (eventDoc.exists) {
             final eventData = eventDoc.data()!;
-            eventData['id'] = eventId;
-            events.add(eventData);
+            events.add({
+              ...eventData,
+              'id': eventId, // Explicitly add the document ID
+            });
           }
         }
 
-        // Sort or process events if needed
         setState(() {});
       } else {
         print("User not found");
@@ -55,6 +56,7 @@ class _eventListState extends State<eventList> {
       print("Error fetching user and events: $e");
     }
   }
+
 
 
 
@@ -73,21 +75,21 @@ class _eventListState extends State<eventList> {
 
   Future<void> addEvent(String name, String category, String status, DateTime date, String location ,String description) async {
     try {
-      final newEventRef = FirebaseFirestore.instance.collection('events').doc();
+      final newEventRef = FirebaseFirestore.instance.collection('event').doc();
       await newEventRef.set({
         'name': name,
         'category': category,
         'status': status,
-        'description': description,
+        'description': description??"",
         'location': location??"",
-        'date': date.toString(),
+        'date': date.toIso8601String(),
         'userId': widget.userId,
       });
 
       await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
         'eventIds': FieldValue.arrayUnion([newEventRef.id])
       });
-
+      print("new ref id::"+newEventRef.id);
       // Add the new event locally
       setState(() {
         events.add({
@@ -97,7 +99,7 @@ class _eventListState extends State<eventList> {
           'location':location,
           'description':description,
           'status': status,
-          'date': date,
+          'date': date.toIso8601String(),
           'userId': widget.userId,
         });
       });
@@ -116,13 +118,13 @@ class _eventListState extends State<eventList> {
 
   Future<void> editEvent(String eventId, String name, String category, String status, DateTime date, String location ,String description) async {
     try {
-      await FirebaseFirestore.instance.collection('events').doc(eventId).update({
+      await FirebaseFirestore.instance.collection('event').doc(eventId).update({
         'name': name,
         'category': category,
         'location':location,
         'description':description,
         'status': status,
-        'date': date,
+        'date': date.toIso8601String(),
       });
 
       setState(() {
@@ -134,7 +136,7 @@ class _eventListState extends State<eventList> {
             'location':location,
             'description':description,
             'status': status,
-            'date': date,
+            'date': date.toIso8601String(),
           };
         }
       });
@@ -153,7 +155,8 @@ class _eventListState extends State<eventList> {
 
   Future<void> deleteEvent(String eventId) async {
     try {
-      await FirebaseFirestore.instance.collection('events').doc(eventId).delete();
+      print("strin id:: "+eventId);
+      await FirebaseFirestore.instance.collection('event').doc(eventId).delete();
 
       await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
         'eventIds': FieldValue.arrayRemove([eventId])
@@ -377,7 +380,9 @@ class _eventListState extends State<eventList> {
                     trailing:  isLoggedIn? IconButton(
                       icon: const Icon(Icons.delete, color: myAppColors.primColor),
                       onPressed: () {
-                        deleteEvent(event['id']);},)
+                        print("Event to delete: $event");
+                        print("imsides::"+event['id'].toString());
+                        deleteEvent(event['id'].toString());},)
                     : IconButton(
                       icon: const Icon(Icons.arrow_forward_ios_rounded, color: myAppColors.primColor,),
                       onPressed: () {

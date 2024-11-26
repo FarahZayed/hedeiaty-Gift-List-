@@ -71,10 +71,9 @@ class _MyAppState extends State<MyApp> {
         "/profile":(context)=>profilePage(),
         "/pledgedGifts":(context)=>pledgedGiftsPage(),
         "/friendGiftPage":(context)=>friendGiftPage(friendName: ModalRoute.of(context)?.settings.arguments as String),
-        "/mangeEventsPage":(context){
-              final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
-              return ManageEventsPage(
-              event: args['event'],);
+        "/manageEventsPage": (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          return ManageEventsPage(event: args?['event']);
         },
 
       },

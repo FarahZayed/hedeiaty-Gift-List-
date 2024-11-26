@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hedieaty/appBar.dart';
-import 'package:hedieaty/colors.dart'; // Assuming you have this for your theme colors
+import 'package:intl/intl.dart'; // For date formatting
 
 class ManageEventsPage extends StatefulWidget {
   final Map<String, dynamic>? event;
@@ -29,7 +28,22 @@ class _ManageEventsPageState extends State<ManageEventsPage> {
     if (picked != null) {
       setState(() {
         dateController.text = picked.toIso8601String().split('T')[0];
+        _updateStatus(picked);
       });
+    }
+  }
+
+  void _updateStatus(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selectedDate = DateTime(date.year, date.month, date.day);
+
+    if (selectedDate.isBefore(today)) {
+      statusController.text = 'Past';
+    } else if (selectedDate.isAfter(today)) {
+      statusController.text = 'Upcoming';
+    } else {
+      statusController.text = 'Current';
     }
   }
 
@@ -39,10 +53,11 @@ class _ManageEventsPageState extends State<ManageEventsPage> {
     if (widget.event != null) {
       nameController.text = widget.event!['name'];
       categoryController.text = widget.event!['category'];
-      statusController.text = widget.event!['status'];
+     // statusController.text = widget.event!['status'];
       dateController.text = widget.event!['date'];
       locationController.text = widget.event!['location'] ?? '';
       descriptionController.text = widget.event!['description'] ?? '';
+      _updateStatus(DateTime.parse(widget.event!['date']));
     }
   }
 
@@ -61,8 +76,8 @@ class _ManageEventsPageState extends State<ManageEventsPage> {
             _buildTextField(nameController, 'Event Name', Icons.event),
             const SizedBox(height: 16),
             _buildTextField(categoryController, 'Category', Icons.category),
-            const SizedBox(height: 16),
-            _buildTextField(statusController, 'Status', Icons.info),
+            // const SizedBox(height: 16),
+            // _buildTextField(statusController, 'Status', Icons.info, readOnly: true),
             const SizedBox(height: 16),
             TextField(
               controller: dateController,
@@ -98,9 +113,10 @@ class _ManageEventsPageState extends State<ManageEventsPage> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, IconData icon) {
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool readOnly = false}) {
     return TextField(
       controller: controller,
+      readOnly: readOnly,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon),
