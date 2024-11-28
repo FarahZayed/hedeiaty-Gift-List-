@@ -285,7 +285,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ListTile(
                 leading: const Icon(Icons.card_giftcard, color: myAppColors.primColor),
                 title: const Text('My Gift List'),
-                onTap: () => Navigator.pushNamed(context, "/giftList"),
+                onTap: () => Navigator.pushNamed(context, "/giftList",arguments: {'userId': user['uid'],'eventId': null,'isLoggedin':true}),
               ),
               ListTile(
                 leading: const Icon(Icons.event, color: myAppColors.primColor),

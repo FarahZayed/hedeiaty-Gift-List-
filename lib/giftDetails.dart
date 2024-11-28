@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/appBar.dart';
-import 'package:hedieaty/colors.dart'; // Assuming you have this for your theme colors
+import 'package:hedieaty/colors.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class GiftDetailsPage extends StatefulWidget {
   final Map<String, dynamic>? gift;
-  final Map<String, dynamic>? event;
+  final String? eventId;
+  final String userId;
 
-  const GiftDetailsPage({super.key, this.gift, this.event});
+  const GiftDetailsPage({super.key, this.gift, this.eventId, required this.userId});
 
   @override
   _GiftDetailsPageState createState() => _GiftDetailsPageState();
@@ -17,35 +19,91 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController categoryController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
-  final TextEditingController eventController = TextEditingController();
+
+  String? selectedEventId;
+  String? eventName; // Store the event name if we receive eventId
+  List<Map<String, dynamic>> userEvents = [];
   bool isPledged = false;
 
   @override
   void initState() {
     super.initState();
-    // in case it is editing
+
+    // Fetch user's events and populate dropdown
+    _fetchUserEvents();
+
+    // Pre-fill gift data
     if (widget.gift != null) {
       nameController.text = widget.gift!['name'];
       descriptionController.text = widget.gift!['description'];
       categoryController.text = widget.gift!['category'];
       priceController.text = widget.gift!['price'].toString();
-      eventController.text = widget.event!['name'];
-      isPledged = widget.gift!['status'] == 'pledged';
+      selectedEventId = widget.gift!['eventId'];
+      //isPledged = widget.gift!['status'] == 'pledged';
+    } else if (widget.eventId != null) {
+      selectedEventId = widget.eventId;
+      _fetchEventName(widget.eventId!); // Fetch the name of the event
     }
   }
 
-  void saveGift() {
-    // Will implement to change or add in DB
-    final newGift = {
-      'name': nameController.text,
-      'description': descriptionController.text,
-      'category': categoryController.text,
-      'price': double.tryParse(priceController.text) ?? 0,
-      'status': isPledged ? 'pledged' : 'available',
-      'event': eventController.text,
-    };
-    Navigator.pop(context, newGift);
+  Future<void> _fetchUserEvents() async {
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+      if (userDoc.exists) {
+        List<String> eventIds = List<String>.from(userDoc.data()?['eventIds'] ?? []);
+
+        List<Map<String, dynamic>> events = [];
+        for (String eventId in eventIds) {
+          final eventDoc = await FirebaseFirestore.instance.collection('event').doc(eventId).get();
+          if (eventDoc.exists) {
+            events.add({
+              'id': eventId,
+              'name': eventDoc.data()?['name'] ?? 'Unnamed Event',
+            });
+          }
+        }
+
+        setState(() {
+          userEvents = events;
+        });
+      }
+    } catch (e) {
+      print("Error fetching user events: $e");
+    }
   }
+
+  Future<void> _fetchEventName(String eventId) async {
+    try {
+      final eventDoc = await FirebaseFirestore.instance.collection('event').doc(eventId).get();
+      if (eventDoc.exists) {
+        setState(() {
+          eventName = eventDoc.data()?['name'] ?? 'Unnamed Event';
+        });
+      }
+    } catch (e) {
+      print("Error fetching event name: $e");
+    }
+  }
+
+  // void saveGift() {
+  //   if (selectedEventId == null) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text("Please select an event.")),
+  //     );
+  //     return;
+  //   }
+  //
+  //   final newGift = {
+  //     'name': nameController.text.trim(),
+  //     'description': descriptionController.text.trim(),
+  //     'category': categoryController.text.trim(),
+  //     'price': double.tryParse(priceController.text) ?? 0,
+  //     'status': isPledged ? 'pledged' : 'available',
+  //     'eventId': selectedEventId,
+  //   };
+  //
+  //   Navigator.pop(context, newGift);
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -98,11 +156,40 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
                         keyboardType: TextInputType.number,
                       ),
                       const SizedBox(height: 16),
-                      _buildTextField(
-                        controller: eventController,
-                        label: 'Event',
-                        icon: Icons.event,
+                      // Dropdown for Event Selection
+                      DropdownButtonFormField<String>(
+                        value: selectedEventId,
+                        items: userEvents.map((event) {
+                          return DropdownMenuItem<String>(
+                            value: event['id'],
+                            child: Text(event['name']),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedEventId = value;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'Event',
+                          prefixIcon: const Icon(Icons.event, color: myAppColors.primColor),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
                       ),
+                      if (eventName != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10.0),
+                          child: Text(
+                            'Selected Event: $eventName',
+                            style: TextStyle(
+                              fontSize: 16.0,
+                              fontWeight: FontWeight.bold,
+                              color: myAppColors.primColor,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -111,48 +198,40 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
               const SizedBox(height: 20),
 
               // Pledge Status Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                  title: Text('Status: ${isPledged ? 'Pledged' : 'Available'}',),
-                  trailing: Switch(
-                    value: isPledged,
-                    onChanged: (value) {
-                      setState(() {
-                        isPledged = value;
-                      });
-                    },
-                  ),
-                ),
-              ),
+              // Card(
+              //   elevation: 4,
+              //   shape: RoundedRectangleBorder(
+              //     borderRadius: BorderRadius.circular(15),
+              //   ),
+              //   child: ListTile(
+              //     contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              //     title: Text('Status: ${isPledged ? 'Pledged' : 'Available'}'),
+              //     trailing: Switch(
+              //       value: isPledged,
+              //       onChanged: (value) {
+              //         setState(() {
+              //           isPledged = value;
+              //         });
+              //       },
+              //     ),
+              //   ),
+              // ),
 
-              const SizedBox(height: 20),
+              //const SizedBox(height: 20),
 
               // Save Button
               Center(
                 child: ElevatedButton(
-                  onPressed: saveGift,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: myAppColors.primColor,
-                    foregroundColor: isDarkMode
-                        ? myAppColors.darkBlack
-                        : myAppColors.lightWhite,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20.0),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 15,
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  onPressed: (){
+                    Navigator.pop(context, {
+                      'name': nameController.text.trim(),
+                      'category': categoryController.text.trim(),
+                      // 'status': statusController.text.trim(),
+                      'eventId': selectedEventId,
+                      'price': priceController.text.trim(),
+                      'description': descriptionController.text.trim(),
+                    });
+                  },
                   child: Text(widget.gift != null ? 'Update Gift' : 'Add Gift'),
                 ),
               ),

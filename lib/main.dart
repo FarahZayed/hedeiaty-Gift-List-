@@ -68,8 +68,9 @@ class _MyAppState extends State<MyApp> {
         '/giftList': (context) {
           final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
           return giftList(
-            friendId: args['friendId'],
-            eventId: args['eventId'],
+            userId: args['userId'],
+            eventId: args?['eventId'],
+            isLoggedin: args['isLoggedin'],
           );
         },
 

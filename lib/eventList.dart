@@ -367,22 +367,22 @@ class _eventListState extends State<eventList> {
                                   ListTile(
                                     leading: Icon(Icons.category),
                                     title: Text('Category'),
-                                    subtitle: Text(event['category']?? null),
+                                    subtitle: Text(event['category']?? "No available category"),
                                   ),
                                   ListTile(
                                     leading: Icon(Icons.info),
                                     title: Text('Status'),
-                                    subtitle: Text(event['status']?? null),
+                                    subtitle: Text(event['status']?? "No available status"),
                                   ),
                                   ListTile(
                                     leading: Icon(Icons.description),
                                     title: Text('Description'),
-                                    subtitle: Text(event['description']?? null),
+                                    subtitle: Text(event['description']?? "No available description"),
                                   ),
                                   ListTile(
                                     leading: Icon(Icons.location_on),
                                     title: Text('Location'),
-                                    subtitle: Text(event['location']?? null),
+                                    subtitle: Text(event['location']?? "No avaulable location "),
                                   ),
                                   ListTile(
                                     leading: Icon(Icons.date_range),

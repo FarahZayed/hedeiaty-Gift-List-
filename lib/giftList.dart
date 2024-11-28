@@ -2,35 +2,69 @@ import 'package:flutter/material.dart';
 import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/appBar.dart';
 import 'package:hedieaty/giftDetails.dart';
-import 'package:hedieaty/db.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class giftList extends StatefulWidget {
-  final int friendId;
-  final int? eventId;
+  final String userId;
+  final String? eventId;
+  final bool isLoggedin;
 
-  const giftList({super.key, required this.friendId, this.eventId});
+  const giftList({super.key, required this.userId, this.eventId, required this.isLoggedin});
 
   @override
   _giftListPageState createState() => _giftListPageState();
 }
 
 class _giftListPageState extends State<giftList> {
-  late List<Map<String, dynamic>> gifts;
-  late bool isLoggedin;
-  Map<String, dynamic>? event;
+  late List<Map<String, dynamic>> gifts = [];
   String sortOption = '';
 
   @override
   void initState() {
     super.initState();
-    if (widget.eventId != null) {
-      gifts = MockDatabase.getGiftsForFriendEvent(widget.friendId, widget.eventId!);
-      event = MockDatabase.getEventById(widget.eventId!); // Fetch the event by ID
-    } else {
-      gifts = MockDatabase.getGiftsForFriend(widget.friendId);
+    _fetchUserAndGifts();
+  }
+
+  Future<void> _fetchUserAndGifts() async {
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+
+      if (userDoc.exists) {
+        List<String> eventIds = List<String>.from(userDoc.data()?['eventIds'] ?? []);
+
+
+        List<Map<String, dynamic>> allGifts = [];
+
+        for (String eventId in eventIds) {
+          final eventDoc = await FirebaseFirestore.instance.collection('event').doc(eventId).get();
+          if (eventDoc.exists) {
+            List<String> giftIds = List<String>.from(eventDoc.data()?['giftIds'] ?? []);
+
+            for (String giftId in giftIds) {
+              final giftDoc = await FirebaseFirestore.instance.collection('gifts').doc(giftId).get();
+              if (giftDoc.exists) {
+                final giftData = giftDoc.data()!;
+                allGifts.add({
+                  ...giftData,
+                  'id': giftId,
+                  'eventId': eventId,
+                  'eventname': eventDoc.data()?['name'],
+                });
+              }
+            }
+          }
+        }
+
+        setState(() {
+          gifts = allGifts;
+        });
+
+      } else {
+        print("User not found");
+      }
+    } catch (e) {
+      print("Error fetching user and gifts: $e");
     }
-    var friend = MockDatabase.friends.firstWhere((friend) => friend['id'] == widget.friendId);
-    isLoggedin = friend['isLoggedin'];
   }
 
   void sortGifts(String option) {
@@ -46,68 +80,184 @@ class _giftListPageState extends State<giftList> {
     });
   }
 
-  void addGift(String name, String category, String description, double price, String status, String? imagePath, String event) {
-    setState(() {
-      gifts.add({
+  Future<void> addGift(String name, String category, String description, double price, String? imagePath, String eventId) async {
+    try {
+      final newGiftRef = FirebaseFirestore.instance.collection('gifts').doc();
+      await newGiftRef.set({
         'name': name,
         'category': category,
         'description': description,
         'price': price,
-        'status': status,
+        'status': 'Available', // Default status
         'image': imagePath,
-        'event': event
+        'eventId': eventId,
       });
-    });
+
+      await FirebaseFirestore.instance.collection('event').doc(eventId).update({
+        'giftIds': FieldValue.arrayUnion([newGiftRef.id]),
+      });
+      final eventDoc = await FirebaseFirestore.instance.collection('event').doc(eventId).get();
+
+      setState(() {
+        gifts.add({
+          'id': newGiftRef.id,
+          'name': name,
+          'category': category,
+          'description': description,
+          'price': price,
+          'status': 'Available',
+          'image': imagePath,
+          'eventId': eventId,
+          'eventname':eventDoc.data()?['name']
+        });
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Gift added successfully.")),
+      );
+    } catch (e) {
+      print("Error adding gift: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error adding gift: $e")),
+      );
+    }
   }
 
-  void editGift(int index, String newName, String newCategory, String newDescription, double newPrice, String newStatus, String? newImagePath, String event) {
-    setState(() {
-      gifts[index] = {
-        'name': newName,
-        'category': newCategory,
-        'description': newDescription,
-        'price': newPrice,
-        'status': newStatus,
-        'image': newImagePath,
-        'event': event
-      };
-    });
+  Future<void> editGift(String giftId, String name, String category, String description, double price, String? imagePath, String newEventId) async {
+    try {
+      // Fetch the current gift data
+      final giftDoc = await FirebaseFirestore.instance.collection('gifts').doc(giftId).get();
+      if (!giftDoc.exists) throw "Gift not found";
+
+      final giftData = giftDoc.data()!;
+      final oldEventId = giftData['eventId'];
+
+
+      await FirebaseFirestore.instance.collection('gifts').doc(giftId).update({
+        'name': name,
+        'category': category,
+        'description': description,
+        'price': price,
+        'image': imagePath,
+        'eventId': newEventId, // Assign to the new event
+      });
+
+
+      if (oldEventId != newEventId) {
+        await FirebaseFirestore.instance.collection('event').doc(oldEventId).update({
+          'giftIds': FieldValue.arrayRemove([giftId]),
+        });
+
+        // Step 3: Update the new event's `giftIds` list
+        await FirebaseFirestore.instance.collection('event').doc(newEventId).update({
+          'giftIds': FieldValue.arrayUnion([giftId]),
+        });
+      }
+
+
+      final newEventDoc = await FirebaseFirestore.instance.collection('event').doc(newEventId).get();
+      final newEventName = newEventDoc.data()?['name'] ?? "Unknown Event";
+
+      setState(() {
+        int index = gifts.indexWhere((gift) => gift['id'] == giftId);
+        if (index != -1) {
+          gifts[index] = {
+            'id': giftId,
+            'name': name,
+            'category': category,
+            'description': description,
+            'price': price,
+            'status': gifts[index]['status'], // Preserve status
+            'image': imagePath,
+            'eventId': newEventId,
+            'eventname': newEventName,
+          };
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Gift updated successfully.")),
+      );
+    } catch (e) {
+      print("Error updating gift: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error updating gift: $e")),
+      );
+    }
   }
 
-  void deleteGift(int index) {
-    setState(() {
-      gifts.removeAt(index);
-    });
+
+  Future<void> deleteGift(String giftId, String? eventId) async {
+    try {
+      await FirebaseFirestore.instance.collection('gifts').doc(giftId).delete();
+
+      await FirebaseFirestore.instance.collection('event').doc(eventId).update({
+        'giftIds': FieldValue.arrayRemove([giftId]),
+      });
+
+      setState(() {
+        gifts.removeWhere((gift) => gift['id'] == giftId);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Gift deleted successfully.")),
+      );
+    } catch (e) {
+      print("Error deleting gift: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error deleting gift: $e")),
+      );
+    }
   }
 
-  void navigateToGiftDetails({Map<String, dynamic>? gift,Map<String, dynamic>? event}) async {
+  void navigateToGiftDetails(Map<String, dynamic>? gift, String? eventId) async {
+    if (gift != null && gift['status'] == 'Pledged') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Cannot edit a pledged gift.")),
+      );
+      return;
+    }
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => GiftDetailsPage(gift: gift,event:event),
+        builder: (context) => GiftDetailsPage(
+          gift: gift,
+          eventId: eventId,
+          userId: widget.userId,
+        ),
       ),
     );
 
     if (result != null) {
       if (gift != null) {
-        int index = gifts.indexOf(gift);
-        editGift(index, result['name'], result['category'], result['description'], result['price'], result['status'], result['image'], result['event']);
+
+        await editGift(
+          gift['id'],
+          result['name'],
+          result['category'],
+          result['description'],
+          double.parse(result['price']),
+          result['image'],
+          result['eventId'],
+        );
       } else {
-        addGift(result['name'], result['category'], result['description'], result['price'], result['status'], result['image'], result['event']);
+        await addGift(
+          result['name'],
+          result['category'],
+          result['description'],
+          double.parse(result['price']),
+          result['image'],
+          result['eventId'],
+        );
       }
     }
-  }
-
-  void togglePledgeStatus(int index) {
-    setState(() {
-      gifts[index]['status'] = gifts[index]['status'] == 'Available' ? 'Pledged' : 'Available';
-      //then save in DB
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: CustomAppBar(
         title: "Gift List",
@@ -137,66 +287,50 @@ class _giftListPageState extends State<giftList> {
       ),
       body: Column(
         children: [
-          // Display the Event Name at the top of the page if available
-          if (event != null)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                event!['name'],
-                style: TextStyle(
-                  fontSize: 22.0,
-                  fontWeight: FontWeight.bold,
-                  color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
-                ),
-              ),
-            ),
           Expanded(
-            child: ListView.builder(
+            child: gifts.isEmpty
+                ? const Center(child: Text("You have no gifts"))
+                : ListView.builder(
               itemCount: gifts.length,
               itemBuilder: (context, index) {
                 var gift = gifts[index];
-                var evntCurrentId = gift['eventId'];
                 bool isPledged = gift['status'] == 'Pledged';
-                Map<String, dynamic>? evnt = MockDatabase.getEventById(evntCurrentId);
+
                 return Card(
-                  color: isPledged ? myAppColors.wrongColor.withOpacity(0.4) : (isDarkMode ? Colors.black : myAppColors.lightWhite),
+                  color: isPledged
+                      ? myAppColors.wrongColor.withOpacity(0.4)
+                      : (isDarkMode ? Colors.black : myAppColors.lightWhite),
                   margin: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 10.0),
                   elevation: 15.0,
                   child: ListTile(
-                    title: Text(gift['name'], style: TextStyle(
-                      fontSize: 18.0,
-                      fontWeight: FontWeight.bold,
-                      color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
-                    ),
-                    ),
-                    subtitle: Text(evnt?['name']?? "No assigned event ", style: TextStyle(
-                      color: isDarkMode ? myAppColors.lightWhite.withOpacity(0.7) : myAppColors.darkBlack.withOpacity(0.7),
-                    ),
-                    ),
-                    trailing: isLoggedin
-                        ? IconButton(
-                         icon: const Icon(Icons.delete, color: myAppColors.primColor),
-                         onPressed: () {
-                          deleteGift(index);
-                        },
-                    )
-                        : ElevatedButton(
-                          onPressed: () => togglePledgeStatus(index),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isPledged ? Colors.grey : myAppColors.primColor,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.0),
-                        ),
+                    title: Text(
+                      gift['name']??"No Name",
+                      style: TextStyle(
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
                       ),
-                          child: Text(
-                            isPledged ? 'Pledged' : 'Pledge',
-                            style: TextStyle(color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack),
-                          ),
                     ),
-                    onTap: () {
-                      if (!isPledged) {
-                        navigateToGiftDetails(gift: gift, event: evnt);
-                      }
+                    subtitle: Text(
+                      gift['eventname'] ?? "No assigned event",
+                      style: TextStyle(
+                        color: isDarkMode
+                            ? myAppColors.lightWhite.withOpacity(0.7)
+                            : myAppColors.darkBlack.withOpacity(0.7),
+                      ),
+                    ),
+                    trailing: isPledged
+                        ? const SizedBox()
+                        : IconButton(
+                      icon: const Icon(Icons.delete, color: myAppColors.primColor),
+                      onPressed: () {
+                        deleteGift(gift['id'],gift['eventId']);
+                      },
+                    ),
+                    onTap: isPledged
+                        ? null
+                        : () {
+                       navigateToGiftDetails(gift, gift['eventId']);
                     },
                   ),
                 );
@@ -205,17 +339,15 @@ class _giftListPageState extends State<giftList> {
           ),
         ],
       ),
-      floatingActionButton: Visibility(
-        visible: isLoggedin,
-        child: FloatingActionButton(
-          onPressed: () {
-            navigateToGiftDetails();
-          },
-          backgroundColor: myAppColors.secondaryColor.withOpacity(0.7),
-          child: const Icon(Icons.add),
-        ),
-      ),
-
+      floatingActionButton: widget.isLoggedin
+          ? FloatingActionButton(
+        onPressed: () {
+          navigateToGiftDetails(null, widget.eventId);
+        },
+        backgroundColor: myAppColors.secondaryColor.withOpacity(0.7),
+        child: const Icon(Icons.add),
+      )
+          : null,
     );
   }
 }
