@@ -43,7 +43,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    //DatabaseService().initDatabase();
   }
 
   @override
@@ -76,7 +75,14 @@ class _MyAppState extends State<MyApp> {
 
         "/profile":(context)=>profilePage(),
         "/pledgedGifts":(context)=>pledgedGiftsPage(),
-        "/friendGiftPage":(context)=>friendGiftPage(friendName: ModalRoute.of(context)?.settings.arguments as String),
+        "/friendGiftPage":(context){
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
+          return friendGiftPage(
+            friendId: args['friendId'],
+              eventId:args['eventId'],
+          );
+        },
+
         "/manageEventsPage": (context) {
           final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
           return ManageEventsPage(event: args?['event']);

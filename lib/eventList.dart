@@ -411,14 +411,17 @@ class _eventListState extends State<eventList> {
                     : IconButton(
                       icon: const Icon(Icons.arrow_forward_ios_rounded, color: myAppColors.primColor,),
                       onPressed: () {
-                        // Navigator.pushNamed(
-                        //   context,
-                        //   '/giftList',
-                        //   arguments: {
-                        //     'friendId': widget.friendId,
-                        //     'eventId': event['id'],
-                        //   },
-                        // );
+                        print('user id '+ widget.userId);
+                        print("event id "+event['id']);
+                        Navigator.pushNamed(
+                          context,
+                          '/friendGiftPage',
+                          arguments: {
+                            'friendId': widget.userId,
+                            'eventId': event['id'],
+                            //'isLoggedin':false,
+                          },
+                        );
 
                       },
                     ),

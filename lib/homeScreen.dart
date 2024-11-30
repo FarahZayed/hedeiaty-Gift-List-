@@ -49,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
   //   });
   // }
 
-  void _addFriendManually() {
+  void _addFriendManually(String currentUserId, List<dynamic> friendsIds) {
     showDialog(
       context: context,
       builder: (context) {
@@ -84,33 +84,57 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(context);
+
                 String phoneNumber = _phoneController.text.trim();
                 String name = _nameOfFriend.text.trim();
+
                 if (phoneNumber.isNotEmpty && name.isNotEmpty) {
-                  Map<String, dynamic> newFriend = {
-                    'id': MockDatabase.friends.length + 1,
-                    'name': name,
-                    'profileImage': 'asset/profile.png',
-                    'phoneNumber': phoneNumber,
-                    'events': [],
-                  };
+                  try {
+                    QuerySnapshot userSnapshot = await FirebaseFirestore.instance
+                        .collection('users')
+                        .where('phone', isEqualTo: phoneNumber)
+                        .get();
 
-                  setState(() {
-                    MockDatabase.friends.add(newFriend);
-                  });
+                    if (userSnapshot.docs.isNotEmpty) {
+                      var friendDoc = userSnapshot.docs.first;
+                      var friendData = friendDoc.data() as Map<String, dynamic>;
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Friend was added successfully")),
-                  );
-                  _phoneController.clear();
-                  _nameOfFriend.clear();
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(currentUserId)
+                          .update({
+                        'friendIds': FieldValue.arrayUnion([friendDoc.id]),
+                      });
+
+                      setState(() {
+                        friendsIds.add(friendDoc.id);
+                      });
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("${friendData['username']} was added successfully!")),
+                      );
+                    } else {
+                      // Friend not found
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("User not found with this phone number.")),
+                      );
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Error adding friend: $e")),
+                    );
+                  }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Please enter a name and phone number")),
+                    const SnackBar(content: Text("Please enter both name and phone number.")),
                   );
                 }
+
+                // Clear fields
+                _phoneController.clear();
+                _nameOfFriend.clear();
               },
               child: const Text("Add Friend"),
             ),
@@ -119,6 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
 
   // void _showContacts() {
   //   showDialog(
@@ -158,40 +183,40 @@ class _HomeScreenState extends State<HomeScreen> {
   //   );
   // }
 
-  void _showAddOptions() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.contact_phone, color: myAppColors.primColor),
-                title: const Text("Add from Contacts"),
-                onTap: () {
-                  Navigator.pop(context);
-                  //_showContacts();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.person_add, color: myAppColors.primColor),
-                title: const Text("Add Manually"),
-                onTap: () {
-                  Navigator.pop(context);
-                  _addFriendManually();
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  // void _showAddOptions() {
+  //   showModalBottomSheet(
+  //     context: context,
+  //     shape: const RoundedRectangleBorder(
+  //       borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+  //     ),
+  //     builder: (context) {
+  //       return Container(
+  //         padding: const EdgeInsets.all(16.0),
+  //         child: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           children: [
+  //             ListTile(
+  //               leading: const Icon(Icons.contact_phone, color: myAppColors.primColor),
+  //               title: const Text("Add from Contacts"),
+  //               onTap: () {
+  //                 Navigator.pop(context);
+  //                 //_showContacts();
+  //               },
+  //             ),
+  //             ListTile(
+  //               leading: const Icon(Icons.person_add, color: myAppColors.primColor),
+  //               title: const Text("Add Manually"),
+  //               onTap: () {
+  //                 Navigator.pop(context);
+  //                 _addFriendManually();
+  //               },
+  //             ),
+  //           ],
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
   Future<void> addEvent(String userId,String name, String category, String status, DateTime date, String location ,String description) async {
     try {
@@ -227,7 +252,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final Map<String, dynamic> user = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     List <dynamic> friendsIds=user['friendIds'];
-    //final user = FirebaseAuth.instance.currentUser;
     isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -415,7 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddOptions,
+        onPressed:()=> _addFriendManually(user['uid'], friendsIds),
         backgroundColor: myAppColors.secondaryColor.withOpacity(0.8),
         child: Icon(Icons.add, color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack),
       ),
