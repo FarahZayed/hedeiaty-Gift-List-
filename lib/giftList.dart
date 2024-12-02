@@ -9,6 +9,7 @@ class giftList extends StatefulWidget {
   final String? eventId;
   final bool isLoggedin;
 
+
   const giftList({super.key, required this.userId, this.eventId, required this.isLoggedin});
 
   @override
@@ -18,6 +19,7 @@ class giftList extends StatefulWidget {
 class _giftListPageState extends State<giftList> {
   late List<Map<String, dynamic>> gifts = [];
   String sortOption = '';
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -57,13 +59,16 @@ class _giftListPageState extends State<giftList> {
 
         setState(() {
           gifts = allGifts;
+          isLoading=false;
         });
 
       } else {
         print("User not found");
+        isLoading=false;
       }
     } catch (e) {
       print("Error fetching user and gifts: $e");
+      isLoading=false;
     }
   }
 
@@ -285,7 +290,9 @@ class _giftListPageState extends State<giftList> {
           ),
         ],
       ),
-      body: Column(
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator()):
+      Column(
         children: [
           Expanded(
             child: gifts.isEmpty
@@ -331,6 +338,52 @@ class _giftListPageState extends State<giftList> {
                         ? null
                         : () {
                        navigateToGiftDetails(gift, gift['eventId']);
+                    },
+                    onLongPress: (){
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text(gift['name']),
+                            content: SingleChildScrollView(
+                              child: ListBody(
+                                children: <Widget>[
+                                  ListTile(
+                                    leading: Icon(Icons.category),
+                                    title: Text('Category'),
+                                    subtitle: Text(gift['category']?? "No available category"),
+                                  ),
+                                  ListTile(
+                                    leading: Icon(Icons.info),
+                                    title: Text('Price'),
+                                    subtitle: Text(
+                                      gift['price']?.toString() ?? "No available price",
+                                    ),
+                                  ),
+                                  ListTile(
+                                    leading: Icon(Icons.description),
+                                    title: Text('Description'),
+                                    subtitle: Text(gift['description']?? "No available description"),
+                                  ),
+                                  ListTile(
+                                    leading: Icon(Icons.location_on),
+                                    title: Text('Event'),
+                                    subtitle: Text(gift['eventname']?? "No avaulable location "),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            actions: <Widget>[
+                              TextButton(
+                                child: Text('Close'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      );
                     },
                   ),
                 );

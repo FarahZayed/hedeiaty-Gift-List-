@@ -74,7 +74,7 @@ class _MyAppState extends State<MyApp> {
         },
 
         "/profile":(context)=>profilePage(),
-        "/pledgedGifts":(context)=>pledgedGiftsPage(),
+        "/pledgedGifts": (context) => pledgedGiftsPage(userId: ModalRoute.of(context)?.settings.arguments as String),
         "/friendGiftPage":(context){
           final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
           return friendGiftPage(

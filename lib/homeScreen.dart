@@ -51,8 +51,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _addFriendManually(String currentUserId, List<dynamic> friendsIds) {
     showDialog(
-      context: context,
-      builder: (context) {
+      context: context, // Parent context is passed here
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text("Add Friend Manually"),
           content: SingleChildScrollView(
@@ -85,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: [
             TextButton(
               onPressed: () async {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
 
                 String phoneNumber = _phoneController.text.trim();
                 String name = _nameOfFriend.text.trim();
@@ -112,11 +112,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         friendsIds.add(friendDoc.id);
                       });
 
+                      // Show success Snackbar using the parent context
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text("${friendData['username']} was added successfully!")),
                       );
                     } else {
-                      // Friend not found
+                      // Show error Snackbar using the parent context
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text("User not found with this phone number.")),
                       );
@@ -143,6 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
 
 
   // void _showContacts() {
@@ -326,7 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ListTile(
                 leading: const Icon(Icons.card_giftcard_outlined, color: myAppColors.primColor),
                 title: const Text("My Pledged Gifts"),
-                onTap: () => Navigator.pushNamed(context, "/pledgedGifts"),
+                onTap: () => Navigator.pushNamed(context, "/pledgedGifts",arguments: user['uid']),
               ),
               const Spacer(),
               Divider(

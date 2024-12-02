@@ -19,6 +19,7 @@ class eventList extends StatefulWidget {
 class _eventListState extends State<eventList> {
   late List<String> eventsId;
   late List<Map<String, dynamic>> originalEvents = [];
+  bool isLoading=true;
 
 
   @override
@@ -47,12 +48,14 @@ class _eventListState extends State<eventList> {
         }
 
 
-        setState(() {});
+        setState(() { isLoading=false;});
       } else {
         print("User not found");
+        isLoading=false;
       }
     } catch (e) {
       print("Error fetching user and events: $e");
+      isLoading=false;
     }
   }
 
@@ -328,7 +331,9 @@ class _eventListState extends State<eventList> {
           ),
         ],
       ),
-      body: Column(
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator()):
+      Column(
         children: [
           const Padding(padding: EdgeInsets.only(top: 10.0)),
           Expanded(

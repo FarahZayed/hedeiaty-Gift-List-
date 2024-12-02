@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hedieaty/colors.dart';
 import 'package:hedieaty/appBar.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hedieaty/models/userModel.dart';
 import 'package:hedieaty/db.dart';
 
@@ -15,33 +16,31 @@ class _profilePageState extends State<profilePage> {
   bool notificationsEnabled = true;
 
 
-  void _changeProfile(String username, String email, String phone, Map<String,dynamic> user) async {
+  void _changeProfile(String username, String phone, Map<String, dynamic> user) async {
     try {
       final firestore = FirebaseFirestore.instance;
 
-      if (username.isNotEmpty || email.isNotEmpty || phone.isNotEmpty) {
+      if (username.isNotEmpty || phone.isNotEmpty) {
         final updatedData = {
           if (username.isNotEmpty) 'username': username,
-          if (email.isNotEmpty) 'email': email,
           if (phone.isNotEmpty) 'phone': phone,
         };
 
-
+        // Update Firestore with new data
         await firestore.collection('users').doc(user['uid']).update(updatedData);
 
-
+        // Fetch updated data from Firestore
         final updatedSnapshot = await firestore.collection('users').doc(user['uid']).get();
         final updatedUser = updatedSnapshot.data();
 
         if (updatedUser != null) {
           setState(() {
             user['username'] = updatedUser['username'];
-            user['email'] = updatedUser['email'];
             user['phone'] = updatedUser['phone'];
           });
 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Profile updated successfully")),
+            const SnackBar(content: Text("Profile updated successfully.")),
           );
         }
 
@@ -60,13 +59,15 @@ class _profilePageState extends State<profilePage> {
 
 
 
+
+
+
   @override
   Widget build(BuildContext context) {
     Map<String,dynamic> user = ModalRoute.of(context)!.settings.arguments as Map<String,dynamic>;
     bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     final TextEditingController userNameController = TextEditingController();
-    final TextEditingController emailController = TextEditingController();
     final TextEditingController phoneController = TextEditingController();
     //final TextEditingController imageController = TextEditingController();
 
@@ -93,13 +94,6 @@ class _profilePageState extends State<profilePage> {
                         fontSize: 22.0,
                         fontWeight: FontWeight.bold,
                         color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
-                      ),
-                    ),
-                    Text(
-                      "${user['email']}",
-                      style: TextStyle(
-                        fontSize: 16.0,
-                        color: isDarkMode ? myAppColors.lightWhite.withOpacity(0.7) : myAppColors.darkBlack.withOpacity(0.7),
                       ),
                     ),
                     Text(
@@ -162,16 +156,6 @@ class _profilePageState extends State<profilePage> {
                                         ),
                                         const SizedBox(height: 15.0),
                                         TextField(
-                                          controller: emailController,
-                                          keyboardType: TextInputType.emailAddress,
-                                          decoration: InputDecoration(
-                                            labelText: "Edit your email",
-                                            hintText: user['email'],
-                                            border: const OutlineInputBorder(),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 15.0),
-                                        TextField(
                                           controller: phoneController,
                                           keyboardType: TextInputType.emailAddress,
                                           decoration: InputDecoration(
@@ -194,7 +178,7 @@ class _profilePageState extends State<profilePage> {
                                   TextButton(
                                     onPressed: (){
                                       setState(() {
-                                          _changeProfile(userNameController.text.trim(), emailController.text.trim(), phoneController.text.trim(),user);
+                                          _changeProfile(userNameController.text.trim(), phoneController.text.trim(),user);
                                       });
 
                                     },
@@ -228,49 +212,6 @@ class _profilePageState extends State<profilePage> {
               ),
               const SizedBox(height: 20),
 
-              // Created Events and Gifts Section
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15.0),
-                ),
-                elevation: 4.0,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "My Events & Gifts",
-                        style: TextStyle(
-                          fontSize: 18.0,
-                          fontWeight: FontWeight.bold,
-                          color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      //needs to linked later to DB and page event and gift
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        itemCount: 3,
-                        itemBuilder: (context, index) {
-                          return ListTile(
-                            leading: Icon(Icons.event, color: myAppColors.secondaryColor),
-                            title: Text("Event ${index + 1}: Birthday Party"),
-                            subtitle: Text("Gifts: Smartphone, Headphones"),
-                            trailing: Icon(Icons.arrow_forward_ios, color: myAppColors.secondaryColor),
-                            onTap: () {
-                              // Navigate to event
-                            },
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
               // My Pledged Gifts Section
               Card(
                 shape: RoundedRectangleBorder(
@@ -283,7 +224,7 @@ class _profilePageState extends State<profilePage> {
                   trailing: Icon(Icons.arrow_forward_ios, color: myAppColors.secondaryColor),
                   onTap: () {
                     // Navigate to My Pledged Gifts Page
-                    Navigator.pushNamed(context, "/pledgedGifts");
+                    Navigator.pushNamed(context, "/pledgedGifts", arguments: user['uid']);
                   },
                 ),
               ),
