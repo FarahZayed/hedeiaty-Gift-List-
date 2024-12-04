@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:hedieaty/colors.dart';
+import 'package:hedieaty/widgets/colors.dart';
 //pages
-import 'package:hedieaty/eventList.dart';
-import 'package:hedieaty/homeScreen.dart';
-import 'package:hedieaty/giftList.dart';
-import 'package:hedieaty/login.dart';
-import 'package:hedieaty/profile.dart';
-import 'package:hedieaty/pledgedGifts.dart';
-import 'package:hedieaty/friendGiftList.dart';
-import 'package:hedieaty/manageEvents.dart';
+import 'package:hedieaty/screens/eventList.dart';
+import 'package:hedieaty/screens/homeScreen.dart';
+import 'package:hedieaty/screens/giftList.dart';
+import 'package:hedieaty/screens/login.dart';
+import 'package:hedieaty/screens/profile.dart';
+import 'package:hedieaty/screens/pledgedGifts.dart';
+import 'package:hedieaty/screens/friendGiftList.dart';
+import 'package:hedieaty/screens/manageEvents.dart';
 
 //firebase
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'data/firebase_options.dart';
 
 
 void main() async {

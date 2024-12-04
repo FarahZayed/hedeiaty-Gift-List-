@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import 'package:hedieaty/colors.dart';
-import 'package:hedieaty/appBar.dart';
-import 'package:hedieaty/manageEvents.dart';
+import 'package:hedieaty/widgets/colors.dart';
+import 'package:hedieaty/widgets/appBar.dart';
+import 'package:hedieaty/screens/manageEvents.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class eventList extends StatefulWidget {

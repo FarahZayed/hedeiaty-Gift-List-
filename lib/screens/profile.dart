@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:hedieaty/colors.dart';
-import 'package:hedieaty/appBar.dart';
+import 'package:hedieaty/widgets/colors.dart';
+import 'package:hedieaty/widgets/appBar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hedieaty/models/userModel.dart';
-import 'package:hedieaty/db.dart';
+import 'package:hedieaty/data/db.dart';
 
 class profilePage extends StatefulWidget {
 

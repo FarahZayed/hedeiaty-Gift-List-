@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hedieaty/colors.dart';
+import 'package:hedieaty/widgets/colors.dart';
 
 
 

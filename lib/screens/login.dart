@@ -5,8 +5,8 @@ import 'dart:ui';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:hedieaty/colors.dart';
-import 'package:hedieaty/db.dart';
+import 'package:hedieaty/widgets/colors.dart';
+import 'package:hedieaty/data/db.dart';
 import 'package:hedieaty/models/userModel.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -22,7 +22,6 @@ class loginPage extends StatefulWidget {
 }
 
 class _loginPageState extends State<loginPage> {
-  final dbService = DatabaseService();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
@@ -41,73 +40,6 @@ class _loginPageState extends State<loginPage> {
   }
 
 
-//login with local DB
-  // Future<void> _login() async {
-  //   String email = emailController.text.trim();
-  //   String password = passwordController.text.trim();
-  //
-  //   if (email.isEmpty || password.isEmpty) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text("Please enter both email and password")),
-  //     );
-  //     return;
-  //   }
-  //
-  //   final users = await dbService.getUsers();
-  //   User? user;
-  //
-  //   try {
-  //     user = users.firstWhere(
-  //           (user) => user.email == email && user.password == password,
-  //     );
-  //   } catch (e) {
-  //     user = null; // No user matches the criteria
-  //   }
-  //
-  //   if (user != null) {
-  //     Navigator.pushReplacementNamed(context, "/home",arguments: user);
-  //   } else {
-  //
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text("Invalid email or password")),
-  //     );
-  //   }
-  // }
-
-  //signup with local DB
-  // Future<void> _signUp() async {
-  //   String email = emailController.text.trim();
-  //   String password = passwordController.text.trim();
-  //   String username = usernameController.text.trim();
-  //
-  //   if (email.isEmpty || password.isEmpty || username.isEmpty) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text("Please fill in all the fields")),
-  //     );
-  //     return;
-  //   }
-  //
-  //   final newUser = User(
-  //     id: 0,
-  //     name: username,
-  //     email: email,
-  //     password: password,
-  //     preferences: "None",
-  //   );
-  //
-  //   await dbService.insertUser(newUser);
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     const SnackBar(content: Text("Signup successful! Please log in.")),
-  //   );
-  //
-  //
-  //   usernameController.clear();
-  //   emailController.clear();
-  //   passwordController.clear();
-  //   setState(() {
-  //     isLogin = true;
-  //   });
-  // }
 
   //login with firebase
   Future<void> _logIn() async {
@@ -126,20 +58,22 @@ class _loginPageState extends State<loginPage> {
       );
 
       final firebaseUser = userCredential.user;
-      print("uid:: "+ firebaseUser!.uid);
 
       if (firebaseUser != null) {
         final userDoc = await FirebaseFirestore.instance.collection('users').doc(firebaseUser.uid).get();
 
         if (userDoc.exists) {
           final data = userDoc.data()!;
-
-          // final dbUser = UserlocalDB(
-          //   id: firebaseUser.uid.hashCode.toString(),
-          //   name: data['username'] ?? '',
-          //   email: firebaseUser.email!,
-          //   preferences: "None",
-          // );
+          final localuser = UserlocalDB(
+            uid: data['uid'],
+            username: data['username'],
+            email: data['email'],
+            phone: data['phone'],
+            eventIds: List<dynamic>.from(data['eventIds']),
+            friendIds: List<dynamic>.from(data['friendIds']),
+            photoURL: data['photoURL'] ?? "",
+          );
+          await LocalDatabase().saveUser(localuser);
 
           Navigator.pushReplacementNamed(context, "/home", arguments: data);
         } else {
@@ -165,7 +99,6 @@ class _loginPageState extends State<loginPage> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
   }
-
 
 
   //signup with firebase auth
@@ -218,10 +151,6 @@ class _loginPageState extends State<loginPage> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     }
   }
-
-
-
-
 
 
   void _showSignUpModal() {
@@ -311,9 +240,6 @@ class _loginPageState extends State<loginPage> {
       ),
     );
   }
-
-
-
 
   @override
   Widget build(BuildContext context) {

@@ -1,10 +1,13 @@
 class Event {
-  final int id;
+  final String id;
   final String name;
   final String date;
   final String location;
   final String description;
-  final int userId;
+  final String category;
+  final List<dynamic> giftIds;
+  final String status;
+  final String userId;
 
   Event({
     required this.id,
@@ -13,6 +16,9 @@ class Event {
     required this.location,
     required this.description,
     required this.userId,
+    required this.giftIds,
+    required this.category,
+    required this.status,
   });
 
   Map<String, dynamic> toMap() {
@@ -23,6 +29,9 @@ class Event {
       'location': location,
       'description': description,
       'userId': userId,
+      'giftsIds': giftIds.toString(),
+      'category':category,
+      'status': status,
     };
   }
 
@@ -34,6 +43,9 @@ class Event {
       location: map['location'],
       description: map['description'],
       userId: map['userId'],
+      giftIds: List<dynamic>.from(map['giftIds']),
+      category: map['category'],
+      status:  map['status']
     );
   }
 }

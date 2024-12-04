@@ -1,31 +1,43 @@
 class UserlocalDB {
-  final String id;
-  final String name;
+  final String uid;
+  final String username;
   final String email;
-  final String? preferences;
+  final String phone;
+  final List<dynamic> friendIds;
+  final List<dynamic>eventIds;
+  final String photoURL;
 
   UserlocalDB({
-    required this.id,
-    required this.name,
+    required this.uid,
+    required this.username,
     required this.email,
-    this.preferences,
+    required this.phone,
+    required this.eventIds,
+    required this.friendIds,
+    required this.photoURL
   });
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
-      'username': name,
+      'uid': uid,
+      'username': username,
       'email': email,
-      'preferences': preferences,
+      'phone': phone,
+      'friendIds': friendIds.toString(),
+      'eventIds': eventIds.toString(),
+      'photoURL':photoURL,
     };
   }
 
   factory UserlocalDB.fromMap(Map<String, dynamic> map) {
     return UserlocalDB(
-      id: map['id'],
-      name: map['name'],
+      uid: map['id'],
+      username: map['username'],
       email: map['email'],
-      //preferences: map['preferences'],
+      phone: map['phone'],
+      photoURL: map['photoURL'],
+      eventIds: List<dynamic>.from(map['eventIds']),
+      friendIds: List<dynamic>.from(map['friendIds']),
     );
   }
 }

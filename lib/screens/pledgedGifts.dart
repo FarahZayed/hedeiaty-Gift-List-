@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:hedieaty/colors.dart';
-import 'package:hedieaty/appBar.dart';
+import 'package:hedieaty/widgets/colors.dart';
+import 'package:hedieaty/widgets/appBar.dart';
 
 class pledgedGiftsPage extends StatefulWidget {
   final String userId;

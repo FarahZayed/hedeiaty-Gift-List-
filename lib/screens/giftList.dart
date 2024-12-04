@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hedieaty/colors.dart';
-import 'package:hedieaty/appBar.dart';
-import 'package:hedieaty/giftDetails.dart';
+import 'package:hedieaty/widgets/colors.dart';
+import 'package:hedieaty/widgets/appBar.dart';
+import 'package:hedieaty/screens/giftDetails.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class giftList extends StatefulWidget {

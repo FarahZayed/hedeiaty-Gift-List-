@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:hedieaty/colors.dart';
-import 'package:hedieaty/appBar.dart';
-import 'package:hedieaty/db.dart';
-import 'package:hedieaty/manageEvents.dart';
-
+import 'package:hedieaty/widgets/colors.dart';
+import 'package:hedieaty/widgets/appBar.dart';
+import 'package:hedieaty/data/db.dart';
+import 'package:hedieaty/models/eventModel.dart';
+import 'package:hedieaty/screens/manageEvents.dart';
+import 'package:uuid/uuid.dart';
+//firebase
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+//sqlite
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 
+//contacts
 //import 'package:contacts_service/contacts_service.dart';
-import 'package:permission_handler/permission_handler.dart';
+//import 'package:permission_handler/permission_handler.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueChanged<ThemeMode> onThemeToggle;
@@ -34,6 +39,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     //_requestPermission();
+  }
+
+  Future<bool> isOnline() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    return connectivityResult == ConnectivityResult.mobile || connectivityResult == ConnectivityResult.wifi;
   }
 
   // Future<void> _requestPermission() async {
@@ -222,25 +232,45 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> addEvent(String userId,String name, String category, String status, DateTime date, String location ,String description) async {
     try {
-      final newEventRef = FirebaseFirestore.instance.collection('event').doc();
-      await newEventRef.set({
-        'name': name,
-        'category': category,
-        'status': status,
-        'description': description??"",
-        'location': location??"",
-        'date': date.toIso8601String(),
-        'userId': userId,
-      });
-
-      await FirebaseFirestore.instance.collection('users').doc(userId).update({
-        'eventIds': FieldValue.arrayUnion([newEventRef.id])
-      });
-
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Event added successfully.")),
+      final Uuid uuid = Uuid();
+      bool online = await isOnline();
+      final newEvent = Event(
+        id: uuid.v4(),
+        name: name,
+        date: date.toIso8601String(),
+        location: location,
+        description: description,
+        userId: userId,
+        giftIds: [],
+        category: category,
+        status: status,
       );
+      if (online) {
+        final newEventRef = FirebaseFirestore.instance.collection('event').doc(
+            newEvent.id);
+        await newEventRef.set(newEvent.toMap());
+
+        await FirebaseFirestore.instance.collection('users').doc(userId).update(
+            {
+              'eventIds': FieldValue.arrayUnion([newEventRef.id])
+            });
+
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Event added successfully.")),
+        );
+      }else{
+
+        final db = await LocalDatabase().database;
+        await db.insert('event', {
+          ...newEvent.toMap(),
+          'pendingSync': 1,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Event saved locally. Will sync when online.")),
+        );
+      }
     } catch (e) {
       print("Error adding event: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -250,11 +280,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 
+
+
+
   @override
   Widget build(BuildContext context) {
     final Map<String, dynamic> user = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     List <dynamic> friendsIds=user['friendIds'];
     isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    // Future<Map<String, dynamic>> loadUserData() async {
+    //   final bool online = await isOnline();
+    //   Map<String, dynamic>? user;
+    //
+    //   if (online) {
+    //
+    //     final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    //     user = arguments;
+    //
+    //   } else {
+    //     user = await LocalDatabase().getUser();
+    //   }
+    //
+    //   if (user == null) {
+    //     throw Exception("Unable to load user data");
+    //   }
+    //
+    //   return user;
+    // }
 
     return Scaffold(
       key: _scaffoldKey,
@@ -468,7 +521,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 );
 
                 if (result != null) {
-                  // Extract event details from the result and save it
                   await addEvent(
                     user['uid'],
                     result['name'],
