@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hedieaty/widgets/colors.dart';
 import 'package:hedieaty/widgets/appBar.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:hedieaty/models/userModel.dart';
+import 'package:hedieaty/services/connectivityController.dart';
+import 'dart:convert';
 import 'package:hedieaty/data/db.dart';
+import 'package:sqflite/sqflite.dart';
 
 class profilePage extends StatefulWidget {
 
@@ -16,24 +17,44 @@ class _profilePageState extends State<profilePage> {
   bool notificationsEnabled = true;
 
 
+
   void _changeProfile(String username, String phone, Map<String, dynamic> user) async {
     try {
       final firestore = FirebaseFirestore.instance;
+      final db = await LocalDatabase().database;
 
-      if (username.isNotEmpty || phone.isNotEmpty) {
-        final updatedData = {
-          if (username.isNotEmpty) 'username': username,
-          if (phone.isNotEmpty) 'phone': phone,
-        };
+      final updatedData = {
+        if (username.isNotEmpty) 'username': username,
+        if (phone.isNotEmpty) 'phone': phone,
+      };
 
-        // Update Firestore with new data
+      if (updatedData.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please enter the data you want to change")),
+        );
+        return;
+      }
+
+      bool online = await connectivityController.isOnline();
+
+      if (online) {
+        // Update in Firestore
         await firestore.collection('users').doc(user['uid']).update(updatedData);
 
-        // Fetch updated data from Firestore
+        // Fetch updated user data
         final updatedSnapshot = await firestore.collection('users').doc(user['uid']).get();
         final updatedUser = updatedSnapshot.data();
 
         if (updatedUser != null) {
+          // Update user data in local DB
+          final localUserData = {
+            ...updatedUser,
+            'friendIds': jsonEncode(updatedUser['friendIds']),
+            'eventIds': jsonEncode(updatedUser['eventIds']),
+            'pendingSync': 0,
+          };
+          await db.insert('user', localUserData, conflictAlgorithm: ConflictAlgorithm.replace);
+
           setState(() {
             user['username'] = updatedUser['username'];
             user['phone'] = updatedUser['phone'];
@@ -43,19 +64,37 @@ class _profilePageState extends State<profilePage> {
             const SnackBar(content: Text("Profile updated successfully.")),
           );
         }
-
-        Navigator.of(context).pop();
       } else {
+        // Save locally for syncing later
+        final localUserData = {
+          ...user,
+          ...updatedData,
+          'friendIds': jsonEncode(user['friendIds']),
+          'eventIds': jsonEncode(user['eventIds']),
+          'pendingSync': 1,
+        };
+
+        await db.insert('user', localUserData, conflictAlgorithm: ConflictAlgorithm.replace);
+
+        setState(() {
+          user['username'] = updatedData['username'] ?? user['username'];
+          user['phone'] = updatedData['phone'] ?? user['phone'];
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please enter the data you want to change")),
+          const SnackBar(content: Text("Changes saved locally. Will sync when online.")),
         );
       }
+
+      Navigator.of(context).pop();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("An error occurred: $e")),
       );
     }
   }
+
+
 
 
 

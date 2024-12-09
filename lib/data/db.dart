@@ -24,7 +24,7 @@ class LocalDatabase {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -50,6 +50,9 @@ class LocalDatabase {
       );
     ''');
     }
+    if (oldVersion < 4) {
+      await db.execute('ALTER TABLE user ADD COLUMN pendingSync INTEGER');
+    }
   }
 
 
@@ -64,7 +67,8 @@ class LocalDatabase {
         phone TEXT,
         eventIds TEXT,
         friendIds TEXT,
-        photoURL TEXT
+        photoURL TEXT,
+        pendingSync INTEGER DEFAULT 0
       );
     ''');
 
@@ -210,6 +214,29 @@ class LocalDatabase {
         await db.delete('event', where: 'id = ?', whereArgs: [event.id]);
       } catch (e) {
         print("Error syncing event: $e");
+      }
+    }
+
+    // Sync User Profile
+    final unsyncedUsers = await db.query('user', where: 'pendingSync = ?', whereArgs: [1]);
+    for (var user in unsyncedUsers) {
+      try {
+        final userId = user['uid'];
+        final updatedData = {
+          'username': user['username'],
+          'phone': user['phone'],
+        };
+
+        await FirebaseFirestore.instance.collection('users').doc(userId as String?).update(updatedData);
+
+        await db.update(
+          'user',
+          {...user, 'pendingSync': 0},
+          where: 'uid = ?',
+          whereArgs: [userId],
+        );
+      } catch (e) {
+        print("Error syncing user profile: $e");
       }
     }
 
