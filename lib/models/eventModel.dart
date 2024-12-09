@@ -29,7 +29,7 @@ class Event {
       'location': location,
       'description': description,
       'userId': userId,
-      'giftsIds': giftIds.toString(),
+      'giftIds': giftIds.toString(),
       'category':category,
       'status': status,
     };
@@ -43,9 +43,11 @@ class Event {
       location: map['location'],
       description: map['description'],
       userId: map['userId'],
-      giftIds: List<dynamic>.from(map['giftIds']),
+      giftIds: map['giftIds'] is String
+          ? (map['giftIds'] as String).split(',').map((id) => id.trim()).toList()
+          : List<dynamic>.from(map['giftIds']),
       category: map['category'],
-      status:  map['status']
+      status: map['status'],
     );
   }
 }

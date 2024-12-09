@@ -4,12 +4,13 @@ import 'package:hedieaty/widgets/appBar.dart';
 import 'package:hedieaty/data/db.dart';
 import 'package:hedieaty/models/eventModel.dart';
 import 'package:hedieaty/screens/manageEvents.dart';
+import 'package:hedieaty/services/connectivityController.dart';
 import 'package:uuid/uuid.dart';
 //firebase
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-//sqlite
-import 'package:connectivity_plus/connectivity_plus.dart';
+
+
 
 
 //contacts
@@ -31,7 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _nameOfFriend = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
- // List<Contact> contacts = [];
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -40,24 +40,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     //_requestPermission();
   }
-
-  Future<bool> isOnline() async {
-    final connectivityResult = await Connectivity().checkConnectivity();
-    return connectivityResult == ConnectivityResult.mobile || connectivityResult == ConnectivityResult.wifi;
-  }
-
-  // Future<void> _requestPermission() async {
-  //   if (await Permission.contacts.request().isGranted) {
-  //     _fetchContacts();
-  //   }
-  // }
-
-  // Future<void> _fetchContacts() async {
-  //   Iterable<Contact> contactsFromDevice = await ContactsService.getContacts();
-  //   setState(() {
-  //     contacts = contactsFromDevice.toList();
-  //   });
-  // }
 
   void _addFriendManually(String currentUserId, List<dynamic> friendsIds) {
     showDialog(
@@ -155,85 +137,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
-
-  // void _showContacts() {
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) {
-  //       return AlertDialog(
-  //         title: const Text("Select Contact"),
-  //         content: SizedBox(
-  //           width: double.maxFinite,
-  //           child: ListView.builder(
-  //             itemCount: contacts.length,
-  //             itemBuilder: (context, index) {
-  //               Contact contact = contacts[index];
-  //               return ListTile(
-  //                 title: Text(contact.displayName ?? "No Name"),
-  //                 subtitle: Text(contact.phones!.isNotEmpty
-  //                     ? contact.phones!.first.value ?? ""
-  //                     : "No phone number"),
-  //                 onTap: () {
-  //                   Navigator.pop(context);
-  //                   if (contact.phones != null && contact.phones!.isNotEmpty) {
-  //                     String phoneNumber = contact.phones!.first.value ?? "";
-  //                     print(
-  //                         "Friend added from contact: ${contact.displayName} with phone number: $phoneNumber");
-  //                   } else {
-  //                     ScaffoldMessenger.of(context).showSnackBar(
-  //                       const SnackBar(content: Text("Selected contact has no phone number")),
-  //                     );
-  //                   }
-  //                 },
-  //               );
-  //             },
-  //           ),
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
-
-  // void _showAddOptions() {
-  //   showModalBottomSheet(
-  //     context: context,
-  //     shape: const RoundedRectangleBorder(
-  //       borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-  //     ),
-  //     builder: (context) {
-  //       return Container(
-  //         padding: const EdgeInsets.all(16.0),
-  //         child: Column(
-  //           mainAxisSize: MainAxisSize.min,
-  //           children: [
-  //             ListTile(
-  //               leading: const Icon(Icons.contact_phone, color: myAppColors.primColor),
-  //               title: const Text("Add from Contacts"),
-  //               onTap: () {
-  //                 Navigator.pop(context);
-  //                 //_showContacts();
-  //               },
-  //             ),
-  //             ListTile(
-  //               leading: const Icon(Icons.person_add, color: myAppColors.primColor),
-  //               title: const Text("Add Manually"),
-  //               onTap: () {
-  //                 Navigator.pop(context);
-  //                 _addFriendManually();
-  //               },
-  //             ),
-  //           ],
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
-
   Future<void> addEvent(String userId,String name, String category, String status, DateTime date, String location ,String description) async {
     try {
       final Uuid uuid = Uuid();
-      bool online = await isOnline();
+      bool online = await connectivityController.isOnline();
       final newEvent = Event(
         id: uuid.v4(),
         name: name,
@@ -245,9 +152,9 @@ class _HomeScreenState extends State<HomeScreen> {
         category: category,
         status: status,
       );
+      print('online::' + online.toString());
       if (online) {
-        final newEventRef = FirebaseFirestore.instance.collection('event').doc(
-            newEvent.id);
+        final newEventRef = FirebaseFirestore.instance.collection('event').doc(newEvent.id);
         await newEventRef.set(newEvent.toMap());
 
         await FirebaseFirestore.instance.collection('users').doc(userId).update(
@@ -261,12 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }else{
 
-        final db = await LocalDatabase().database;
-        await db.insert('event', {
-          ...newEvent.toMap(),
-          'pendingSync': 1,
-        });
-
+        await LocalDatabase().saveEvent(newEvent,pendingSync :true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Event saved locally. Will sync when online.")),
         );
@@ -281,33 +183,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
 
-
-
   @override
   Widget build(BuildContext context) {
     final Map<String, dynamic> user = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     List <dynamic> friendsIds=user['friendIds'];
     isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-    // Future<Map<String, dynamic>> loadUserData() async {
-    //   final bool online = await isOnline();
-    //   Map<String, dynamic>? user;
-    //
-    //   if (online) {
-    //
-    //     final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    //     user = arguments;
-    //
-    //   } else {
-    //     user = await LocalDatabase().getUser();
-    //   }
-    //
-    //   if (user == null) {
-    //     throw Exception("Unable to load user data");
-    //   }
-    //
-    //   return user;
-    // }
 
     return Scaffold(
       key: _scaffoldKey,

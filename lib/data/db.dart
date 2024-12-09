@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:hedieaty/models/eventModel.dart';
 import 'package:hedieaty/models/userModel.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LocalDatabase {
   static final LocalDatabase _instance = LocalDatabase._();
@@ -21,8 +22,37 @@ class LocalDatabase {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, fileName);
 
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: 3,
+      onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+    );
   }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE user ADD COLUMN photoURL TEXT');
+    }
+    if (oldVersion < 3) {
+      await db.execute('''
+      CREATE TABLE IF NOT EXISTS event (
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        date TEXT,
+        location TEXT,
+        description TEXT,
+        userId TEXT,
+        giftIds TEXT,
+        category TEXT,
+        status TEXT,
+        pendingSync INTEGER DEFAULT 0
+      );
+    ''');
+    }
+  }
+
+
 
   Future<void> _createDB(Database db, int version) async {
     //user table
@@ -58,6 +88,16 @@ class LocalDatabase {
 
   Future<void> saveUser(UserlocalDB user) async {
     final db = await database;
+    // // Convert friendIds and eventIds to JSON string for storage
+    // final userMap = {
+    //   'uid': user.uid,
+    //   'username': user.username,
+    //   'email': user.email,
+    //   'phone': user.phone,
+    //   'eventIds': user.eventIds.toString(),
+    //   'friendIds': user.friendIds.toString(),
+    //   'photoURL': user.photoURL, // Ensure this matches the updated schema
+    // };
     await db.insert('user', user.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
@@ -74,17 +114,123 @@ class LocalDatabase {
 
   Future<void> saveEvent(Event event, {bool pendingSync = false}) async {
     final db = await database;
-    await db.insert('event', {
+    print('Event::'+event.toMap().toString());
+    final eventMap = {
       ...event.toMap(),
       'pendingSync': pendingSync ? 1 : 0,
-    });
+    };
+
+    await db.insert('event', eventMap, conflictAlgorithm: ConflictAlgorithm.replace);
   }
+
 
   Future<List<Event>> getPendingEvents() async {
     final db = await database;
+
     final result = await db.query('event', where: 'pendingSync = ?', whereArgs: [1]);
     return result.map((e) => Event.fromMap(e)).toList();
+
   }
+
+
+  //sync the databse with firestore
+  Future<void> syncUnsyncedData() async {
+    final db = await database;
+    print("Database sync... ");
+    // Sync Events
+    final pendingEvents = await getPendingEvents();
+    print(pendingEvents.toString());
+
+    for (var event in pendingEvents) {
+      try {
+        final newEventRef = FirebaseFirestore.instance.collection('event').doc(event.id);
+        await newEventRef.set(event.toMap());
+
+        await FirebaseFirestore.instance.collection('users').doc(event.userId).update({
+          'eventIds': FieldValue.arrayUnion([event.id]),
+        });
+       // await db.delete('event', where: 'id = ?', whereArgs: [event.id]);
+      } catch (e) {
+        print("Error syncing event: $e");
+      }
+    }
+
+    // Sync Pending Events
+
+    for (var event in pendingEvents) {
+      try {
+        // Sync event to Firebase
+        final eventRef = FirebaseFirestore.instance.collection('event').doc(event.id);
+        await eventRef.set(event.toMap(), SetOptions(merge: true));
+
+        // Update user's event list in Firebase
+        await FirebaseFirestore.instance.collection('users').doc(event.userId).update({
+          'eventIds': FieldValue.arrayUnion([event.id]),
+        });
+
+        // Mark as synced locally
+        //await db.delete('event', where: 'id = ?', whereArgs: [event.id]);
+      } catch (e) {
+        print("Error syncing event: $e");
+      }
+    }
+
+    // Sync pending deletions
+    final pendingDeletions = await db.query('event', where: 'pendingSync = ?', whereArgs: [2]);
+
+    for (var eventData in pendingDeletions) {
+      try {
+        final eventId = eventData['id'] as String;
+
+        // Delete from Firebase
+        await FirebaseFirestore.instance.collection('event').doc(eventId).delete();
+
+        await FirebaseFirestore.instance.collection('users').doc(eventData['userId'] as String?).update({
+          'eventIds': FieldValue.arrayRemove([eventId]),
+        });
+
+        // Remove from local database
+        await db.delete('event', where: 'id = ?', whereArgs: [eventId]);
+      } catch (e) {
+        print("Error syncing event deletion: $e");
+      }
+    }
+
+    // Sync other pending events
+    for (var event in pendingEvents) {
+      try {
+        // Save to Firebase
+        final eventRef = FirebaseFirestore.instance.collection('event').doc(event.id);
+        await eventRef.set(event.toMap(), SetOptions(merge: true));
+
+        await FirebaseFirestore.instance.collection('users').doc(event.userId).update({
+          'eventIds': FieldValue.arrayUnion([event.id]),
+        });
+
+        await db.delete('event', where: 'id = ?', whereArgs: [event.id]);
+      } catch (e) {
+        print("Error syncing event: $e");
+      }
+    }
+
+    // Sync Gifts (example)
+    // final unsyncedGifts = await db.query('gift', where: 'pendingSync = ?', whereArgs: [1]);
+    // for (var gift in unsyncedGifts) {
+    //   try {
+    //     final giftData = Gift.fromMap(gift);
+    //
+    //     // Save gift to Firebase
+    //     final newGiftRef = FirebaseFirestore.instance.collection('gift').doc(giftData.id);
+    //     await newGiftRef.set(giftData.toMap());
+    //
+    //     // Mark gift as synced
+    //     await db.delete('gift', where: 'id = ?', whereArgs: [giftData.id]);
+    //   } catch (e) {
+    //     print("Error syncing gift: $e");
+    //   }
+    // }
+  }
+
 
 }
 

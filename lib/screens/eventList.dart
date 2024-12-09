@@ -4,7 +4,12 @@ import 'package:intl/intl.dart';
 import 'package:hedieaty/widgets/colors.dart';
 import 'package:hedieaty/widgets/appBar.dart';
 import 'package:hedieaty/screens/manageEvents.dart';
+import 'package:hedieaty/models/eventModel.dart';
+import 'package:hedieaty/services/connectivityController.dart';
+import 'package:hedieaty/data/db.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 
 class eventList extends StatefulWidget {
   final String userId;
@@ -30,32 +35,65 @@ class _eventListState extends State<eventList> {
 
   Future<void> _fetchUserAndEvents() async {
     try {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+      bool online = await connectivityController.isOnline();
+      print("online"+online.toString());
 
-      if (userDoc.exists) {
-        eventsId = List<String>.from(userDoc.data()?['eventIds'] ?? []);
+      if (online) {
+        // Fetch from Firestore
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
 
-        originalEvents = [];
-        for (String eventId in eventsId) {
-          final eventDoc = await FirebaseFirestore.instance.collection('event').doc(eventId).get();
-          if (eventDoc.exists) {
-            final eventData = eventDoc.data()!;
-            originalEvents.add({
-              ...eventData,
-              'id': eventId,
-            });
+        if (userDoc.exists) {
+          eventsId = List<String>.from(userDoc.data()?['eventIds'] ?? []);
+
+          originalEvents = [];
+          for (String eventId in eventsId) {
+            final eventDoc = await FirebaseFirestore.instance.collection('event').doc(eventId).get();
+            if (eventDoc.exists) {
+              final eventData = eventDoc.data()!;
+              originalEvents.add({
+                ...eventData,
+                'id': eventId,
+              });
+            }
           }
+
+          setState(() {
+            isLoading = false;
+          });
+        } else {
+          print("User not found");
+          setState(() {
+            isLoading = false;
+          });
         }
-
-
-        setState(() { isLoading=false;});
       } else {
-        print("User not found");
-        isLoading=false;
+        // Fetch from SQLite
+        print("FETCHING LOCALLY");
+        final db = await LocalDatabase().database;
+        final userEvents = await db.query('event', where: 'userId = ?', whereArgs: [widget.userId]);
+
+        originalEvents = userEvents.map((event) {
+          return {
+            'id': event['id'],
+            'name': event['name'],
+            'category': event['category'],
+            'status': event['status'],
+            'description': event['description'],
+            'location': event['location'],
+            'date': event['date'],
+            'userId': event['userId'],
+          };
+        }).toList();
+
+        setState(() {
+          isLoading = false;
+        });
       }
     } catch (e) {
       print("Error fetching user and events: $e");
-      isLoading=false;
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -96,32 +134,60 @@ class _eventListState extends State<eventList> {
     });
   }
 
+
   //add event
-  Future<void> addEvent(String name, String category, String status, DateTime date, String location ,String description) async {
+  Future<void> addEvent(String name, String category, String status, DateTime date, String location, String description) async {
     try {
-      final newEventRef = FirebaseFirestore.instance.collection('event').doc();
-      await newEventRef.set({
-        'name': name,
-        'category': category,
-        'status': status,
-        'description': description??"",
-        'location': location??"",
-        'date': date.toIso8601String(),
-        'userId': widget.userId,
-      });
+      final Uuid uuid = Uuid();
+      bool online = await connectivityController.isOnline();
+      final newEvent = Event(
+        id: uuid.v4(),
+        name: name,
+        date: date.toIso8601String(),
+        location: location,
+        description: description,
+        userId: widget.userId,
+        giftIds: [],
+        category: category,
+        status: status,
+      );
+      print('online::' + online.toString());
 
-      await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
-        'eventIds': FieldValue.arrayUnion([newEventRef.id])
-      });
+      String eventId;
 
+      if (online) {
+        final newEventRef = FirebaseFirestore.instance.collection('event').doc();
+        await newEventRef.set({
+          'name': name,
+          'category': category,
+          'status': status,
+          'description': description ?? "",
+          'location': location ?? "",
+          'date': date.toIso8601String(),
+          'userId': widget.userId,
+        });
+
+        await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
+          'eventIds': FieldValue.arrayUnion([newEventRef.id])
+        });
+
+        eventId = newEventRef.id;
+      } else {
+        await LocalDatabase().saveEvent(newEvent, pendingSync: true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Event saved locally. Will sync when online.")),
+        );
+
+        eventId = newEvent.id;
+      }
 
       setState(() {
         originalEvents.add({
-          'id': newEventRef.id,
+          'id': eventId,
           'name': name,
           'category': category,
-          'location':location,
-          'description':description,
+          'location': location,
+          'description': description,
           'status': status,
           'date': date.toIso8601String(),
           'userId': widget.userId,
@@ -140,34 +206,90 @@ class _eventListState extends State<eventList> {
   }
 
   // edit event
-  Future<void> editEvent(String eventId, String name, String category, String status, DateTime date, String location ,String description) async {
+  Future<void> editEvent(String eventId, String name, String category, String status, DateTime date, String location, String description) async {
     try {
-      await FirebaseFirestore.instance.collection('event').doc(eventId).update({
-        'name': name,
-        'category': category,
-        'location':location,
-        'description':description,
-        'status': status,
-        'date': date.toIso8601String(),
-      });
+      // Check for connectivity
+      bool online = await connectivityController.isOnline();
 
-      setState(() {
-        int index = originalEvents.indexWhere((event) => event['id'] == eventId);
-        if (index != -1) {
-          originalEvents[index] = {
-            'name': name,
-            'category': category,
-            'location':location,
-            'description':description,
-            'status': status,
-            'date': date.toIso8601String(),
-          };
+      if (online) {
+        // Update directly in Firebase
+        await FirebaseFirestore.instance.collection('event').doc(eventId).update({
+          'name': name,
+          'category': category,
+          'location': location,
+          'description': description,
+          'status': status,
+          'date': date.toIso8601String(),
+        });
+
+        setState(() {
+          int index = originalEvents.indexWhere((event) => event['id'] == eventId);
+          if (index != -1) {
+            originalEvents[index] = {
+              'id': eventId, // Ensure the ID stays intact
+              'name': name,
+              'category': category,
+              'location': location,
+              'description': description,
+              'status': status,
+              'date': date.toIso8601String(),
+            };
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Event updated successfully.")),
+        );
+      } else {
+        // Save changes locally for later sync
+        final db = await LocalDatabase().database;
+
+        final existingEvent = await db.query(
+          'event',
+          where: 'id = ?',
+          whereArgs: [eventId],
+        );
+
+        if (existingEvent.isNotEmpty) {
+          print ("EXISTS");
+          // Update the local event
+          await db.update(
+            'event',
+            {
+              'name': name,
+              'category': category,
+              'location': location,
+              'description': description,
+              'status': status,
+              'date': date.toIso8601String(),
+              'userId': widget.userId,
+              'pendingSync': 1,
+          },
+            where: 'id = ?',
+            whereArgs: [eventId],
+          );
+        } else {
+          await db.insert(
+            'event',
+            {
+              'id': eventId,
+              'name': name,
+              'category': category,
+              'location': location,
+              'description': description,
+              'status': status,
+              'date': date.toIso8601String(),
+              'userId': widget.userId,
+              'giftIds': null,
+              'pendingSync': 1,
+            },
+          );
         }
-      });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Event updated successfully.")),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Event changes saved locally. Will sync when online.")),
+        );
+      }
     } catch (e) {
       print("Error updating event: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -179,21 +301,45 @@ class _eventListState extends State<eventList> {
   // delete event
   Future<void> deleteEvent(String eventId) async {
     try {
+      // Check if the device is online
+      bool online = await connectivityController.isOnline();
+      print("ONLINE ::"+online.toString());
 
-      await FirebaseFirestore.instance.collection('event').doc(eventId).delete();
+      if (online) {
+        await FirebaseFirestore.instance.collection('event').doc(eventId).delete();
 
-      await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
-        'eventIds': FieldValue.arrayRemove([eventId])
-      });
+        await FirebaseFirestore.instance.collection('users').doc(widget.userId).update({
+          'eventIds': FieldValue.arrayRemove([eventId]),
+        });
 
+        setState(() {
+          originalEvents.removeWhere((event) => event['id'] == eventId);
+        });
 
-      setState(() {
-        originalEvents.removeWhere((event) => event['id'] == eventId);
-      });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Event deleted successfully.")),
+        );
+      } else {
+        // Save the deletion locally
+        final db = await LocalDatabase().database;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Event deleted successfully.")),
-      );
+        await db.insert(
+          'event',
+          {
+            'id': eventId,
+            'pendingSync': 2,
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+
+        setState(() {
+          originalEvents.removeWhere((event) => event['id'] == eventId);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Event marked for deletion locally. Will sync when online.")),
+        );
+      }
     } catch (e) {
       print("Error deleting event: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -201,6 +347,7 @@ class _eventListState extends State<eventList> {
       );
     }
   }
+
 
 
 
