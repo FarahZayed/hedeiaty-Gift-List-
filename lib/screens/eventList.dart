@@ -136,7 +136,6 @@ class _eventListState extends State<eventList> {
     });
   }
 
-
   //add event
   Future<void> addEvent(String name, String category, String status, DateTime date, String location, String description) async {
     try {
@@ -353,55 +352,6 @@ class _eventListState extends State<eventList> {
     }
   }
 
-
-
-
-  // void showEditDialog(int index) {
-  //   TextEditingController nameController = TextEditingController(text: events[index]['name']);
-  //   TextEditingController categoryController = TextEditingController(text: events[index]['category']);
-  //   TextEditingController statusController = TextEditingController(text: events[index]['status']);
-  //
-  //   showDialog(
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return AlertDialog(
-  //         title: Text('Edit Event'),
-  //         content: Column(
-  //           mainAxisSize: MainAxisSize.min,
-  //           children: [
-  //             TextField(
-  //               controller: nameController,
-  //               decoration: InputDecoration(labelText: 'Name'),
-  //             ),
-  //             TextField(
-  //               controller: categoryController,
-  //               decoration: InputDecoration(labelText: 'Category'),
-  //             ),
-  //             TextField(
-  //               controller: statusController,
-  //               decoration: InputDecoration(labelText: 'Status'),
-  //             ),
-  //           ],
-  //         ),
-  //         actions: [
-  //           TextButton(
-  //             onPressed: () {
-  //               Navigator.of(context).pop();
-  //             },
-  //             child: Text('Cancel'),
-  //           ),
-  //           TextButton(
-  //             onPressed: () {
-  //               editEvent(index, nameController.text, categoryController.text, statusController.text,date);
-  //               Navigator.of(context).pop();
-  //             },
-  //             child: Text('Save'),
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   );
-  // }
 
   //direct to mange event page
   void goToEditEvents({Map<String, dynamic>? event}) async {

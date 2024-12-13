@@ -231,36 +231,87 @@ class LocalDatabase {
 
 // Sync User Data
   Future<void> _syncUserData(String userId) async {
+    final db = await LocalDatabase().database;
+
     try {
-      print("in sync user:" +userId);
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-      if (userDoc.exists) {
-        final userData = userDoc.data()!;
-        print("Raw user data: $userData");
-        final userLocal = UserlocalDB.fromMap(userData);
-        print("Constructed UserlocalDB: $userLocal");
-        await saveUser(userLocal);
+      final localUser = await db.query(
+        'user',
+        where: 'uid = ?',
+        whereArgs: [userId],
+      );
+
+      if (localUser.isNotEmpty) {
+        print("SYNCING TO FIREBASE");
+        final userLocal = UserlocalDB.fromMap(localUser.first);
+        print(userLocal.pendingSync);
+        if (userLocal.pendingSync == 1) {
+          // Update Firestore with local data
+          print("Syncing user changes to Firestore for user: $userId");
+          await FirebaseFirestore.instance.collection('users').doc(userId).set(userLocal.toMap());
+
+          // Mark as synced locally
+          await db.update(
+            'user',
+            {'pendingSync': 0},
+            where: 'uid = ?',
+            whereArgs: [userId],
+          );
+        } else {
+          // Fetch latest data from Firestore
+          print("Fetching latest user data from Firestore for user: $userId");
+          final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+
+          if (userDoc.exists) {
+            final userData = userDoc.data()!;
+            final updatedUser = UserlocalDB.fromMap(userData);
+
+            // Overwrite local user data
+            await db.insert(
+              'user',
+              {
+                ...updatedUser.toMap(),
+                'pendingSync': 0,
+              },
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
+          }
+        }
+      } else {
+        // If no local user exists, fetch and save from Firestore
+        print("No local user found. Fetching from Firestore for user: $userId");
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+
+        if (userDoc.exists) {
+          final userData = userDoc.data()!;
+          final newUser = UserlocalDB.fromMap(userData);
+
+          await db.insert(
+            'user',
+            {
+              ...newUser.toMap(),
+              'pendingSync': 0,
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
       }
     } catch (e) {
       print("Error syncing user data: $e");
     }
   }
 
+
 // Sync Events
   Future<void> _syncEvents(String userId) async {
     try {
-
-      print("Start pending editss ::");
+      //sync the change
       final pendingEvents = await getPendingEvents();
-      print("pending event::"+pendingEvents.toString());
       for (var event in pendingEvents) {
         await _syncEventToFirestore(event);
       }
 
       // Sync pending deletions
-      print("Start pending::");
       final pendingDeletions = await getDeleteSyncEvents();
-      print("pending event::"+pendingDeletions.toString());
       for (var eventData in pendingDeletions) {
         await deleteEvent(eventData['id'].toString(), userId, syncWithServer: true);
       }

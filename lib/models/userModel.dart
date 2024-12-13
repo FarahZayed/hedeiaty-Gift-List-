@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class UserlocalDB {
   final String uid;
   final String username;
@@ -6,6 +8,7 @@ class UserlocalDB {
   final List<dynamic> friendIds;
   final List<dynamic>eventIds;
   final String photoURL;
+  int pendingSync;
 
   UserlocalDB({
     required this.uid,
@@ -14,7 +17,8 @@ class UserlocalDB {
     required this.phone,
     required this.eventIds,
     required this.friendIds,
-    required this.photoURL
+    required this.photoURL,
+    this.pendingSync=0,
   });
 
   Map<String, dynamic> toMap() {
@@ -26,18 +30,24 @@ class UserlocalDB {
       'friendIds': friendIds.toString(),
       'eventIds': eventIds.toString(),
       'photoURL':photoURL,
+      'pendingSync':pendingSync
     };
   }
 
   factory UserlocalDB.fromMap(Map<String, dynamic> map) {
     return UserlocalDB(
-      uid: map['uid'] ?? '', // Default to empty string if null
+      uid: map['uid'] ?? '',
       username: map['username'] ?? '',
       email: map['email'] ?? '',
       phone: map['phone'] ?? '',
-      eventIds: List<dynamic>.from(map['eventIds'] ?? []),
-      friendIds: List<dynamic>.from(map['friendIds'] ?? []),
+      eventIds: map['eventIds'] is String
+            ? jsonDecode(map['eventIds']) as List<dynamic>
+            : List<dynamic>.from(map['eventIds'] ?? []),
+      friendIds: map['friendIds'] is String
+          ? jsonDecode(map['friendIds']) as List<dynamic>
+          : List<dynamic>.from(map['friendIds'] ?? []),
       photoURL: map['photoURL'] ?? '',
+      pendingSync: map['pendingSync'],
     );
   }
 }
