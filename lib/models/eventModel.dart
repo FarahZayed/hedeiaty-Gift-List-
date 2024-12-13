@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class Event {
   final String id;
   final String name;
@@ -21,6 +23,7 @@ class Event {
     required this.status,
   });
 
+  // Convert Event to a map for database storage
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -30,24 +33,25 @@ class Event {
       'description': description,
       'userId': userId,
       'giftIds': giftIds.toString(),
-      'category':category,
+      'category': category,
       'status': status,
     };
   }
 
+  // Convert map retrieved from database to Event
   factory Event.fromMap(Map<String, dynamic> map) {
     return Event(
-      id: map['id'],
-      name: map['name'],
-      date: map['date'],
-      location: map['location'],
-      description: map['description'],
-      userId: map['userId'],
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      date: map['date'] ?? '',
+      location: map['location'] ?? '',
+      description: map['description'] ?? '',
+      userId: map['userId'] ?? '',
       giftIds: map['giftIds'] is String
-          ? (map['giftIds'] as String).split(',').map((id) => id.trim()).toList()
-          : List<dynamic>.from(map['giftIds']),
-      category: map['category'],
-      status: map['status'],
+          ? jsonDecode(map['giftIds']) as List<dynamic>
+          : List<dynamic>.from(map['giftIds'] ?? []),
+      category: map['category'] ?? '',
+      status: map['status'] ?? '',
     );
   }
 }

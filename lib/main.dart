@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hedieaty/services/connectivityController.dart';
 import 'package:hedieaty/widgets/colors.dart';
 //pages
 import 'package:hedieaty/screens/eventList.dart';
@@ -18,6 +19,9 @@ import 'data/firebase_options.dart';
 
 //connectivity
 import 'package:connectivity_plus/connectivity_plus.dart';
+
+//shared Preference
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,31 +61,33 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    print("Disposing app and closing database.");
+    LocalDatabase().closeDatabase();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
+
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     print("AppLifecycleState changed: $state\n");
     if (state == AppLifecycleState.resumed) {
-      print("is Resumed");
-      final connectivityResult = await Connectivity().checkConnectivity();
-      _handleConnectivityChange(connectivityResult);
+      _handleConnectivityChange();
+    }
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      print("App is paused or detached. Closing database.");
+      LocalDatabase().closeDatabase();
     }
   }
 
-  void _handleConnectivityChange(List<ConnectivityResult> result) async {
-    print("Connectivity result: $result\n"); // Debug log
-    print ("checking connectivity..\n");
-    bool isConnected = result.any((result) =>
-    result == ConnectivityResult.mobile || result == ConnectivityResult.wifi);
+  void _handleConnectivityChange() async {
 
+    bool isConnected =await connectivityController.isOnline();
     if (isConnected) {
-      print("calling\n");
-      await SyncManager().syncAllUnsyncedData();
-    } else {
-      print("A###");
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('userId');
+      print("userid::"+userId.toString());
+      await SyncManager().syncAllUnsyncedData(userId.toString());
     }
 
   }

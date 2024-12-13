@@ -21,7 +21,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
   final TextEditingController priceController = TextEditingController();
 
   String? selectedEventId;
-  String? eventName; // Store the event name if we receive eventId
+  String? eventName;
   List<Map<String, dynamic>> userEvents = [];
   bool isPledged = false;
 

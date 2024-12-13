@@ -31,13 +31,13 @@ class UserlocalDB {
 
   factory UserlocalDB.fromMap(Map<String, dynamic> map) {
     return UserlocalDB(
-      uid: map['id'],
-      username: map['username'],
-      email: map['email'],
-      phone: map['phone'],
-      photoURL: map['photoURL'],
-      eventIds: List<dynamic>.from(map['eventIds']),
-      friendIds: List<dynamic>.from(map['friendIds']),
+      uid: map['uid'] ?? '', // Default to empty string if null
+      username: map['username'] ?? '',
+      email: map['email'] ?? '',
+      phone: map['phone'] ?? '',
+      eventIds: List<dynamic>.from(map['eventIds'] ?? []),
+      friendIds: List<dynamic>.from(map['friendIds'] ?? []),
+      photoURL: map['photoURL'] ?? '',
     );
   }
 }

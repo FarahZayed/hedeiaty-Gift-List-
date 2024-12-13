@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -36,7 +38,7 @@ class _eventListState extends State<eventList> {
   Future<void> _fetchUserAndEvents() async {
     try {
       bool online = await connectivityController.isOnline();
-      print("online"+online.toString());
+      print("Online: $online");
 
       if (online) {
         // Fetch from Firestore
@@ -44,16 +46,17 @@ class _eventListState extends State<eventList> {
 
         if (userDoc.exists) {
           eventsId = List<String>.from(userDoc.data()?['eventIds'] ?? []);
-
           originalEvents = [];
+
           for (String eventId in eventsId) {
             final eventDoc = await FirebaseFirestore.instance.collection('event').doc(eventId).get();
             if (eventDoc.exists) {
-              final eventData = eventDoc.data()!;
+              final eventData = Event.fromMap(eventDoc.data()!);
               originalEvents.add({
-                ...eventData,
+                ...eventData.toMap(),
                 'id': eventId,
               });
+
             }
           }
 
@@ -68,27 +71,25 @@ class _eventListState extends State<eventList> {
         }
       } else {
         // Fetch from SQLite
-        print("FETCHING LOCALLY");
+        print("Fetching locally");
         final db = await LocalDatabase().database;
         final userEvents = await db.query('event', where: 'userId = ?', whereArgs: [widget.userId]);
+        print("user event id  ::" +userEvents.toString());
 
-        originalEvents = userEvents.map((event) {
+
+        originalEvents = userEvents.map((eventMap) {
           return {
-            'id': event['id'],
-            'name': event['name'],
-            'category': event['category'],
-            'status': event['status'],
-            'description': event['description'],
-            'location': event['location'],
-            'date': event['date'],
-            'userId': event['userId'],
+            ...Event.fromMap(eventMap).toMap(),
+            'id': eventMap['id'],
           };
         }).toList();
+
 
         setState(() {
           isLoading = false;
         });
       }
+      print(originalEvents.toString());
     } catch (e) {
       print("Error fetching user and events: $e");
       setState(() {
@@ -96,6 +97,7 @@ class _eventListState extends State<eventList> {
       });
     }
   }
+
 
   //sort events
   void sortEvents(String option) async{
@@ -226,7 +228,7 @@ class _eventListState extends State<eventList> {
           int index = originalEvents.indexWhere((event) => event['id'] == eventId);
           if (index != -1) {
             originalEvents[index] = {
-              'id': eventId, // Ensure the ID stays intact
+              'id': eventId,
               'name': name,
               'category': category,
               'location': location,
@@ -240,7 +242,8 @@ class _eventListState extends State<eventList> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Event updated successfully.")),
         );
-      } else {
+      }
+      //else {
         // Save changes locally for later sync
         final db = await LocalDatabase().database;
 
@@ -268,6 +271,7 @@ class _eventListState extends State<eventList> {
             where: 'id = ?',
             whereArgs: [eventId],
           );
+
         } else {
           await db.insert(
             'event',
@@ -284,11 +288,11 @@ class _eventListState extends State<eventList> {
               'pendingSync': 1,
             },
           );
-        }
+       // }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Event changes saved locally. Will sync when online.")),
-        );
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   const SnackBar(content: Text("Event changes saved locally. Will sync when online.")),
+        // );
       }
     } catch (e) {
       print("Error updating event: $e");
@@ -319,7 +323,8 @@ class _eventListState extends State<eventList> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Event deleted successfully.")),
         );
-      } else {
+      }
+
         // Save the deletion locally
         final db = await LocalDatabase().database;
 
@@ -336,10 +341,10 @@ class _eventListState extends State<eventList> {
           originalEvents.removeWhere((event) => event['id'] == eventId);
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Event marked for deletion locally. Will sync when online.")),
-        );
-      }
+        // ScaffoldMessenger.of(context).showSnackBar(
+        //   const SnackBar(content: Text("Event marked for deletion locally. Will sync when online.")),
+        // );
+     // }
     } catch (e) {
       print("Error deleting event: $e");
       ScaffoldMessenger.of(context).showSnackBar(

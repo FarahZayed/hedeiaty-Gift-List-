@@ -8,8 +8,8 @@ class SyncManager {
 
   factory SyncManager() => _instance;
 
-  Future<void> syncAllUnsyncedData() async {
+  Future<void> syncAllUnsyncedData(String userID) async {
     print("SYNCING...");
-    await LocalDatabase().syncUnsyncedData(); // Adjust this method based on your implementation
+    await LocalDatabase().syncUnsyncedData(userID);
   }
 }

@@ -1,11 +1,13 @@
 class Gift {
-  final int id;
+  final String id;
   final String name;
   final String description;
   final String category;
   final double price;
   final String status;
-  final int eventId;
+  final String eventId;
+  final String image;
+
 
   Gift({
     required this.id,
@@ -15,6 +17,7 @@ class Gift {
     required this.price,
     required this.status,
     required this.eventId,
+    required this.image,
   });
 
   Map<String, dynamic> toMap() {
@@ -26,6 +29,7 @@ class Gift {
       'price': price,
       'status': status,
       'eventId': eventId,
+      'image': image,
     };
   }
 
@@ -38,6 +42,7 @@ class Gift {
       price: map['price'],
       status: map['status'],
       eventId: map['eventId'],
+      image :map['image']
     );
   }
 }

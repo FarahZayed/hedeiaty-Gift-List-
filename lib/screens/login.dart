@@ -1,8 +1,6 @@
 import 'dart:io';
-import 'dart:math';
 import 'dart:ui';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:hedieaty/widgets/colors.dart';
@@ -10,6 +8,7 @@ import 'package:hedieaty/data/db.dart';
 import 'package:hedieaty/models/userModel.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 
@@ -74,6 +73,8 @@ class _loginPageState extends State<loginPage> {
             photoURL: data['photoURL'] ?? "",
           );
           await LocalDatabase().saveUser(localuser);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('userId',  data['uid']);
 
           Navigator.pushReplacementNamed(context, "/home", arguments: data);
         } else {
@@ -136,6 +137,8 @@ class _loginPageState extends State<loginPage> {
         emailController.clear();
         passwordController.clear();
         usernameController.clear();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('userId', firebaseUser.uid);
         Navigator.pushReplacementNamed(context, "/home", arguments: userData);
 
 

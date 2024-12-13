@@ -1,8 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:hedieaty/widgets/colors.dart';
 import 'package:hedieaty/widgets/appBar.dart';
 import 'package:hedieaty/screens/giftDetails.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hedieaty/services/connectivityController.dart';
+import 'package:hedieaty/data/db.dart';
+import 'package:hedieaty/models/eventModel.dart';
 
 class giftList extends StatefulWidget {
   final String userId;
@@ -29,48 +34,105 @@ class _giftListPageState extends State<giftList> {
 
   Future<void> _fetchUserAndGifts() async {
     try {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
+      bool online = await connectivityController.isOnline();
+      final db = await LocalDatabase().database;
+      print('online:: ' + online.toString());
 
-      if (userDoc.exists) {
-        List<String> eventIds = List<String>.from(userDoc.data()?['eventIds'] ?? []);
+      if (online) {
+        // Online: Fetch data from Firestore
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
 
+        if (userDoc.exists) {
+          List<String> eventIds = List<String>.from(userDoc.data()?['eventIds'] ?? []);
+          List<Map<String, dynamic>> allGifts = [];
 
-        List<Map<String, dynamic>> allGifts = [];
+          for (String eventId in eventIds) {
+            final eventDoc = await FirebaseFirestore.instance.collection('event').doc(eventId).get();
+            if (eventDoc.exists) {
+              List<String> giftIds = List<String>.from(eventDoc.data()?['giftIds'] ?? []);
 
-        for (String eventId in eventIds) {
-          final eventDoc = await FirebaseFirestore.instance.collection('event').doc(eventId).get();
-          if (eventDoc.exists) {
-            List<String> giftIds = List<String>.from(eventDoc.data()?['giftIds'] ?? []);
+              for (String giftId in giftIds) {
+                final giftDoc = await FirebaseFirestore.instance.collection('gifts').doc(giftId).get();
+                if (giftDoc.exists) {
+                  final giftData = giftDoc.data()!;
+                  allGifts.add({
+                    ...giftData,
+                    'id': giftId,
+                    'eventId': eventId,
+                    'eventname': eventDoc.data()?['name'],
+                  });
+                }
+              }
+            }
 
-            for (String giftId in giftIds) {
-              final giftDoc = await FirebaseFirestore.instance.collection('gifts').doc(giftId).get();
-              if (giftDoc.exists) {
-                final giftData = giftDoc.data()!;
-                allGifts.add({
-                  ...giftData,
-                  'id': giftId,
-                  'eventId': eventId,
-                  'eventname': eventDoc.data()?['name'],
-                });
+            // Save events and gifts locally for offline use
+            final eventToSave = Event.fromMap(eventDoc.data()!);
+            await db.insert('event', {
+              ...eventToSave.toMap(),
+              'giftIds': jsonEncode(eventToSave.giftIds), // Serialize List
+              'pendingSync': 0,
+            });
+
+            for (var gift in allGifts) {
+              await db.insert('gifts', {
+                ...gift,
+                'pendingSync': 0,
+              });
+            }
+          }
+
+          setState(() {
+            gifts = allGifts;
+            isLoading = false;
+          });
+        } else {
+          print("User not found");
+          isLoading = false;
+        }
+      } else {
+        // Offline: Fetch data from SQLite
+        print("SYNCING GIFTS");
+        final userLocal = await db.query('user', where: 'uid = ?', whereArgs: [widget.userId]);
+
+        if (userLocal.isNotEmpty) {
+          List<String> eventIds = jsonDecode(userLocal.first['eventIds'].toString());
+          List<Map<String, dynamic>> allGifts = [];
+
+          for (String eventId in eventIds) {
+            final eventLocal = await db.query('event', where: 'id = ?', whereArgs: [eventId]);
+            if (eventLocal.isNotEmpty) {
+              final eventName = eventLocal.first['name'];
+              final giftIds = jsonDecode(eventLocal.first['giftIds'].toString());
+
+              for (String giftId in giftIds) {
+                final giftLocal = await db.query('gifts', where: 'id = ?', whereArgs: [giftId]);
+                if (giftLocal.isNotEmpty) {
+                  allGifts.add({
+                    ...giftLocal.first,
+                    'eventId': eventId,
+                    'eventname': eventName,
+                  });
+                }
               }
             }
           }
+
+          setState(() {
+            gifts = allGifts;
+            isLoading = false;
+          });
+        } else {
+          print("User not found in local database");
+          isLoading = false;
         }
-
-        setState(() {
-          gifts = allGifts;
-          isLoading=false;
-        });
-
-      } else {
-        print("User not found");
-        isLoading=false;
       }
     } catch (e) {
       print("Error fetching user and gifts: $e");
-      isLoading=false;
+      isLoading = false;
     }
   }
+
+
 
   void sortGifts(String option) {
     setState(() {
