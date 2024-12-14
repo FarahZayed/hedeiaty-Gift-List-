@@ -11,12 +11,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 
-
-
-//contacts
-//import 'package:contacts_service/contacts_service.dart';
-//import 'package:permission_handler/permission_handler.dart';
-
 class HomeScreen extends StatefulWidget {
   final ValueChanged<ThemeMode> onThemeToggle;
 
@@ -81,37 +75,48 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 String phoneNumber = _phoneController.text.trim();
                 String name = _nameOfFriend.text.trim();
-
+                final  isOnline = await connectivityController.isOnline();
                 if (phoneNumber.isNotEmpty && name.isNotEmpty) {
                   try {
-                    QuerySnapshot userSnapshot = await FirebaseFirestore.instance
-                        .collection('users')
-                        .where('phone', isEqualTo: phoneNumber)
-                        .get();
-
-                    if (userSnapshot.docs.isNotEmpty) {
-                      var friendDoc = userSnapshot.docs.first;
-                      var friendData = friendDoc.data() as Map<String, dynamic>;
-
-                      await FirebaseFirestore.instance
+                    if(isOnline) {
+                      QuerySnapshot userSnapshot = await FirebaseFirestore
+                          .instance
                           .collection('users')
-                          .doc(currentUserId)
-                          .update({
-                        'friendIds': FieldValue.arrayUnion([friendDoc.id]),
-                      });
+                          .where('phone', isEqualTo: phoneNumber)
+                          .get();
 
-                      setState(() {
-                        friendsIds.add(friendDoc.id);
-                      });
+                      if (userSnapshot.docs.isNotEmpty) {
+                        var friendDoc = userSnapshot.docs.first;
+                        var friendData = friendDoc.data() as Map<String,
+                            dynamic>;
 
-                      // Show success Snackbar using the parent context
+                        await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(currentUserId)
+                            .update({
+                          'friendIds': FieldValue.arrayUnion([friendDoc.id]),
+                        });
+
+                        setState(() {
+                          friendsIds.add(friendDoc.id);
+                        });
+
+                        // Show success Snackbar using the parent context
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(
+                              "${friendData['username']} was added successfully!")),
+                        );
+                      } else {
+                        // Show error Snackbar using the parent context
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text(
+                              "User not found with this phone number.")),
+                        );
+                      }
+                    }
+                    else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("${friendData['username']} was added successfully!")),
-                      );
-                    } else {
-                      // Show error Snackbar using the parent context
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("User not found with this phone number.")),
+                        SnackBar(content: Text("You can't add friend while you are offline")),
                       );
                     }
                   } catch (e) {
@@ -152,7 +157,6 @@ class _HomeScreenState extends State<HomeScreen> {
         category: category,
         status: status,
       );
-      print('online::' + online.toString());
       if (online) {
         final newEventRef = FirebaseFirestore.instance.collection('event').doc(newEvent.id);
         await newEventRef.set(newEvent.toMap());
@@ -362,8 +366,20 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         )
                             : null,
-                        onTap: () {
-                          Navigator.pushNamed(context, "/eventList", arguments: {'userId': friendData['uid'],  'isLoggedIn': false,});
+                        onTap: () async{
+                          final  isOnline = await connectivityController.isOnline();
+                          if(isOnline) {
+                            Navigator.pushNamed(context, "/eventList",
+                                arguments: {
+                                  'userId': friendData['uid'],
+                                  'isLoggedIn': false,
+                                });
+                          }
+                          else{
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("You can't fetch your friends content while you are offline")),
+                            );
+                          }
                         },
                       ),
                     );

@@ -37,7 +37,6 @@ class _giftListPageState extends State<giftList> {
     try {
       bool online = await connectivityController.isOnline();
       final db = await LocalDatabase().database;
-      print('online:: ' + online.toString());
 
       if (online) {
         // Online: Fetch data from Firestore
@@ -51,8 +50,7 @@ class _giftListPageState extends State<giftList> {
             final eventDoc = await FirebaseFirestore.instance.collection('event').doc(eventId).get();
 
             if (eventDoc.exists) {
-              print("getting tirred");
-              print(eventDoc.data()?['giftIds'] );
+
               final giftIds = List<dynamic>.from(eventDoc.data()?['giftIds'] ?? []);
 
               for (dynamic giftId in giftIds) {
@@ -84,25 +82,20 @@ class _giftListPageState extends State<giftList> {
           isLoading = false;
         }
       } else {
-        // Offline: Fetch data from SQLite
-        print("SYNCING GIFTS");
+
         final userLocal = await db.query('user', where: 'uid = ?', whereArgs: [widget.userId]);
 
         if (userLocal.isNotEmpty) {
           List<dynamic> eventIds = jsonDecode(userLocal.first['eventIds'].toString());
           List<Map<String, dynamic>> allGifts = [];
-          print("Event id ::" +eventIds.toString());
 
           for (String eventId in eventIds) {
             final eventLocal = await db.query('event', where: 'id = ?', whereArgs: [eventId]);
             if (eventLocal.isNotEmpty) {
               final eventName = eventLocal.first['name'];
               final giftIds = jsonDecode(eventLocal.first['giftIds'].toString());
-              print("giftIds id ::" +giftIds.toString());
               for (String giftId in giftIds) {
-                print("giftId id ::" +giftId);
                 final giftLocal = await db.query('gifts', where: 'id = ?', whereArgs: [giftId]);
-                print(giftLocal.toString());
                 if (giftLocal.isNotEmpty) {
                   allGifts.add({
                     ...giftLocal.first,
@@ -253,75 +246,12 @@ class _giftListPageState extends State<giftList> {
 
 
 
-  // Future<void> editGift(String giftId, String name, String category, String description, double price, String? imagePath, String newEventId) async {
-  //   try {
-  //     // Fetch the current gift data
-  //     final giftDoc = await FirebaseFirestore.instance.collection('gifts').doc(giftId).get();
-  //     if (!giftDoc.exists) throw "Gift not found";
-  //
-  //     final giftData = giftDoc.data()!;
-  //     final oldEventId = giftData['eventId'];
-  //
-  //
-  //     await FirebaseFirestore.instance.collection('gifts').doc(giftId).update({
-  //       'name': name,
-  //       'category': category,
-  //       'description': description,
-  //       'price': price,
-  //       'image': imagePath,
-  //       'eventId': newEventId, // Assign to the new event
-  //     });
-  //
-  //
-  //     if (oldEventId != newEventId) {
-  //       await FirebaseFirestore.instance.collection('event').doc(oldEventId).update({
-  //         'giftIds': FieldValue.arrayRemove([giftId]),
-  //       });
-  //
-  //       // Step 3: Update the new event's `giftIds` list
-  //       await FirebaseFirestore.instance.collection('event').doc(newEventId).update({
-  //         'giftIds': FieldValue.arrayUnion([giftId]),
-  //       });
-  //     }
-  //
-  //
-  //     final newEventDoc = await FirebaseFirestore.instance.collection('event').doc(newEventId).get();
-  //     final newEventName = newEventDoc.data()?['name'] ?? "Unknown Event";
-  //
-  //     setState(() {
-  //       int index = gifts.indexWhere((gift) => gift['id'] == giftId);
-  //       if (index != -1) {
-  //         gifts[index] = {
-  //           'id': giftId,
-  //           'name': name,
-  //           'category': category,
-  //           'description': description,
-  //           'price': price,
-  //           'status': gifts[index]['status'], // Preserve status
-  //           'image': imagePath,
-  //           'eventId': newEventId,
-  //           'eventname': newEventName,
-  //         };
-  //       }
-  //     });
-  //
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text("Gift updated successfully.")),
-  //     );
-  //   } catch (e) {
-  //     print("Error updating gift: $e");
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text("Error updating gift: $e")),
-  //     );
-  //   }
-  // }
   Future<void> editGift(String giftId, String name, String category, String description, double price, String? imagePath, String newEventId) async {
     try {
       bool online = await connectivityController.isOnline();
       final db = await LocalDatabase().database;
 
       if (online) {
-        // Online: Update gift in Firestore
         final giftDoc = await FirebaseFirestore.instance.collection('gifts').doc(giftId).get();
         if (!giftDoc.exists) throw "Gift not found";
 
@@ -442,30 +372,6 @@ class _giftListPageState extends State<giftList> {
     }
   }
 
-
-
-  // Future<void> deleteGift(String giftId, String? eventId) async {
-  //   try {
-  //     await FirebaseFirestore.instance.collection('gifts').doc(giftId).delete();
-  //
-  //     await FirebaseFirestore.instance.collection('event').doc(eventId).update({
-  //       'giftIds': FieldValue.arrayRemove([giftId]),
-  //     });
-  //
-  //     setState(() {
-  //       gifts.removeWhere((gift) => gift['id'] == giftId);
-  //     });
-  //
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text("Gift deleted successfully.")),
-  //     );
-  //   } catch (e) {
-  //     print("Error deleting gift: $e");
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text("Error deleting gift: $e")),
-  //     );
-  //   }
-  // }
   Future<void> deleteGift(String giftId, String? eventId) async {
     try {
       bool online = await connectivityController.isOnline();

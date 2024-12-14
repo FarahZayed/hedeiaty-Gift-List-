@@ -63,16 +63,6 @@ class _loginPageState extends State<loginPage> {
 
         if (userDoc.exists) {
           final data = userDoc.data()!;
-          // final localuser = UserlocalDB(
-          //   uid: data['uid'],
-          //   username: data['username'],
-          //   email: data['email'],
-          //   phone: data['phone'],
-          //   eventIds: data['eventIds'],
-          //   friendIds: data['friendIds'],
-          //   photoURL: data['photoURL'] ?? "",
-          // );
-          // await LocalDatabase().saveUser(localuser);
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('userId',  data['uid']);
 
