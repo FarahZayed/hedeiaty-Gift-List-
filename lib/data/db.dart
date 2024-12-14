@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:hedieaty/models/eventModel.dart';
@@ -179,6 +181,7 @@ class LocalDatabase {
   }
 
   Future<void> insertGift( Map<String, dynamic> giftData) async {
+    print("syncing gifts ::" + giftData.toString());
     final db = await database;
     await db.insert(
       'gifts',
@@ -213,15 +216,14 @@ class LocalDatabase {
         print("Offline mode: Skipping Firebase sync.");
         return;
       }
+      // Sync Gifts
+      await _syncGifts(userId);
 
       // Sync User Data
       await _syncUserData(userId);
 
       // Sync Events
       await _syncEvents(userId);
-
-      // Sync Gifts
-      await _syncGifts(userId, db);
 
       print("Database sync completed.");
     } catch (e) {
@@ -245,9 +247,13 @@ class LocalDatabase {
         final userLocal = UserlocalDB.fromMap(localUser.first);
         print(userLocal.pendingSync);
         if (userLocal.pendingSync == 1) {
-          // Update Firestore with local data
           print("Syncing user changes to Firestore for user: $userId");
-          await FirebaseFirestore.instance.collection('users').doc(userId).set(userLocal.toMap());
+
+          await FirebaseFirestore.instance.collection('users').doc(userId).set({
+            ...userLocal.toMap(),
+            'friendIds': userLocal.friendIds,
+            'eventIds': userLocal.eventIds,
+          });
 
           // Mark as synced locally
           await db.update(
@@ -256,43 +262,36 @@ class LocalDatabase {
             where: 'uid = ?',
             whereArgs: [userId],
           );
-        } else {
-          // Fetch latest data from Firestore
+        }
+        else {
           print("Fetching latest user data from Firestore for user: $userId");
+
           final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
           if (userDoc.exists) {
             final userData = userDoc.data()!;
-            final updatedUser = UserlocalDB.fromMap(userData);
+            print("User data from Firestore: $userData");
 
-            // Overwrite local user data
+            final updatedUser = UserlocalDB(
+              uid: userData['uid'] ?? '',
+              username: userData['username'] ?? '',
+              email: userData['email'] ?? '',
+              phone: userData['phone'] ?? '',
+              friendIds: List<String>.from(userData['friendIds'] ?? []), // Ensure list format
+              eventIds: List<String>.from(userData['eventIds'] ?? []),   // Ensure list format
+              photoURL: userData['photoURL'] ?? '',
+              pendingSync: 0,
+            );
+
+            print("User data for SQLite: ${updatedUser.toMap()}");
+
             await db.insert(
               'user',
-              {
-                ...updatedUser.toMap(),
-                'pendingSync': 0,
-              },
+              updatedUser.toMap(),
               conflictAlgorithm: ConflictAlgorithm.replace,
             );
           }
-        }
-      } else {
-        // If no local user exists, fetch and save from Firestore
-        print("No local user found. Fetching from Firestore for user: $userId");
-        final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
-        if (userDoc.exists) {
-          final userData = userDoc.data()!;
-          final newUser = UserlocalDB.fromMap(userData);
-
-          await db.insert(
-            'user',
-            {
-              ...newUser.toMap(),
-              'pendingSync': 0,
-            },
-            conflictAlgorithm: ConflictAlgorithm.replace,
-          );
         }
       }
     } catch (e) {
@@ -338,22 +337,90 @@ class LocalDatabase {
   }
 
 // Sync Gifts
-  Future<void> _syncGifts(String userId, Database db) async {
+  Future<void> _syncGifts(String userId) async {
     try {
+      final db = await database;
+
+      // Sync gifts marked for addition or update (pendingSync = 1)
       final pendingGifts = await db.query('gifts', where: 'pendingSync = ?', whereArgs: [1]);
       for (var giftData in pendingGifts) {
         final giftId = giftData['id'] as String;
+
+        // Sync to Firestore
         await FirebaseFirestore.instance.collection('gifts').doc(giftId).set(
-          giftData,
+          {
+            'name': giftData['name'],
+            'category': giftData['category'],
+            'description': giftData['description'],
+            'price': giftData['price'],
+            'status': giftData['status'],
+            'image': giftData['image'],
+            'eventId': giftData['eventId'],
+          },
           SetOptions(merge: true),
         );
 
-        await updategiftPendingSync(giftId);
+        // Mark as synced locally
+        await db.update('gifts', {'pendingSync': 0}, where: 'id = ?', whereArgs: [giftId]);
+
+        // Update event's giftIds in Firestore
+        await FirebaseFirestore.instance.collection('event').doc(giftData['eventId'].toString()).update({
+          'giftIds': FieldValue.arrayUnion([giftId]),
+        });
+
+        // Update local event to ensure giftIds remain an array
+        final eventDoc = await db.query('event', where: 'id = ?', whereArgs: [giftData['eventId']]);
+        if (eventDoc.isNotEmpty) {
+          List<dynamic> giftIds = jsonDecode(eventDoc.first['giftIds'].toString());
+          if (!giftIds.contains(giftId)) giftIds.add(giftId);
+
+          await db.update(
+            'event',
+            {'giftIds': jsonEncode(giftIds), 'pendingSync': 0}, // Keep as JSON locally
+            where: 'id = ?',
+            whereArgs: [giftData['eventId']],
+          );
+        }
+      }
+
+      // Sync gifts marked for deletion (pendingSync = 2)
+      final pendingDeletions = await db.query('gifts', where: 'pendingSync = ?', whereArgs: [2]);
+      for (var giftData in pendingDeletions) {
+        final giftId = giftData['id'] as String;
+
+        // Remove from Firestore
+        await FirebaseFirestore.instance.collection('gifts').doc(giftId).delete();
+
+        // Update event's giftIds in Firestore
+        await FirebaseFirestore.instance.collection('event').doc(giftData['eventId'].toString()).update({
+          'giftIds': FieldValue.arrayRemove([giftId]),
+        });
+
+        // Update local event to remove giftId
+        final eventDoc = await db.query('event', where: 'id = ?', whereArgs: [giftData['eventId']]);
+        if (eventDoc.isNotEmpty) {
+          List<dynamic> giftIds = jsonDecode(eventDoc.first['giftIds'].toString());
+          giftIds.remove(giftId);
+
+          await db.update(
+            'event',
+            {'giftIds': jsonEncode(giftIds), 'pendingSync': 0}, // Keep as JSON locally
+            where: 'id = ?',
+            whereArgs: [giftData['eventId']],
+          );
+        }
+
+        // Remove from local database
+        await db.delete('gifts', where: 'id = ?', whereArgs: [giftId]);
       }
     } catch (e) {
       print("Error syncing gifts: $e");
     }
   }
+
+
+
+
 
 // Sync Gifts for Specific Event
   Future<void> _syncGiftsForEvent(String eventId, List<dynamic> giftIds) async {
@@ -362,6 +429,7 @@ class LocalDatabase {
 
       if (giftDoc.exists) {
         final giftData = giftDoc.data()!;
+        giftData['id'] = giftId;
         await insertGift(giftData);
       }
     }

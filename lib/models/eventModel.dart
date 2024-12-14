@@ -7,7 +7,7 @@ class Event {
   final String location;
   final String description;
   final String category;
-  final List<dynamic> giftIds;
+  final List<String> giftIds;
   final String status;
   final String userId;
 
@@ -32,7 +32,7 @@ class Event {
       'location': location,
       'description': description,
       'userId': userId,
-      'giftIds': giftIds.toString(),
+      'giftIds': jsonEncode(giftIds),
       'category': category,
       'status': status,
     };
@@ -48,8 +48,8 @@ class Event {
       description: map['description'] ?? '',
       userId: map['userId'] ?? '',
       giftIds: map['giftIds'] is String
-          ? jsonDecode(map['giftIds']) as List<dynamic>
-          : List<dynamic>.from(map['giftIds'] ?? []),
+          ? List<String>.from(jsonDecode(map['giftIds'])) // Decode JSON string
+          : List<String>.from(map['giftIds'] ?? []),
       category: map['category'] ?? '',
       status: map['status'] ?? '',
     );

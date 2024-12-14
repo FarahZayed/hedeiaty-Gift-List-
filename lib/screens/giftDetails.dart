@@ -85,25 +85,6 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
     }
   }
 
-  // void saveGift() {
-  //   if (selectedEventId == null) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text("Please select an event.")),
-  //     );
-  //     return;
-  //   }
-  //
-  //   final newGift = {
-  //     'name': nameController.text.trim(),
-  //     'description': descriptionController.text.trim(),
-  //     'category': categoryController.text.trim(),
-  //     'price': double.tryParse(priceController.text) ?? 0,
-  //     'status': isPledged ? 'pledged' : 'available',
-  //     'eventId': selectedEventId,
-  //   };
-  //
-  //   Navigator.pop(context, newGift);
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -197,27 +178,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
 
               const SizedBox(height: 20),
 
-              // Pledge Status Card
-              // Card(
-              //   elevation: 4,
-              //   shape: RoundedRectangleBorder(
-              //     borderRadius: BorderRadius.circular(15),
-              //   ),
-              //   child: ListTile(
-              //     contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              //     title: Text('Status: ${isPledged ? 'Pledged' : 'Available'}'),
-              //     trailing: Switch(
-              //       value: isPledged,
-              //       onChanged: (value) {
-              //         setState(() {
-              //           isPledged = value;
-              //         });
-              //       },
-              //     ),
-              //   ),
-              // ),
 
-              //const SizedBox(height: 20),
 
               // Save Button
               Center(
@@ -226,7 +187,6 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
                     Navigator.pop(context, {
                       'name': nameController.text.trim(),
                       'category': categoryController.text.trim(),
-                      // 'status': statusController.text.trim(),
                       'eventId': selectedEventId,
                       'price': priceController.text.trim(),
                       'description': descriptionController.text.trim(),
