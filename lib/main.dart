@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hedieaty/services/cloudMessaging.dart';
 import 'package:hedieaty/services/connectivityController.dart';
 import 'package:hedieaty/widgets/colors.dart';
 //pages
@@ -12,10 +13,13 @@ import 'package:hedieaty/screens/friendGiftList.dart';
 import 'package:hedieaty/screens/manageEvents.dart';
 import 'package:hedieaty/data/db.dart';
 import 'package:hedieaty/services/syncManager.dart';
+import 'package:hedieaty/services/cloudMessaging.dart';
 
 //firebase
 import 'package:firebase_core/firebase_core.dart';
 import 'data/firebase_options.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 //connectivity
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -23,6 +27,13 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 //shared Preference
 import 'package:shared_preferences/shared_preferences.dart';
 
+
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Handle background notifications
+  print("Handling a background message: ${message.messageId}");
+  print("Handling a background message: ${message!.notification?.title}");
+}
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   //initialize Firebase
@@ -33,11 +44,15 @@ void main() async {
 
   //TEST DB
   final db = await LocalDatabase().database;
-  final tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
-  print("Tables in the database: $tables");
-
-  final schema = await db.rawQuery("PRAGMA table_info(event)");
-  print("Schema of event table: $schema");
+  // final tables = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'");
+  // print("Tables in the database: $tables");
+  //
+  // final schema = await db.rawQuery("PRAGMA table_info(event)");
+  // print("Schema of event table: $schema");
+  //notification
+  NotificationService.initialize();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+ // await cloudMessaging().initNotification();
 
   // RUN APP
   runApp(const MyApp());
@@ -103,6 +118,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     return MaterialApp(
       title: 'Hedieaty',
       theme: MyAppThemes.lightTheme,
+      debugShowCheckedModeBanner: false,
       darkTheme: MyAppThemes.darkTheme,
       themeMode: _themeMode,
       home: const loginPage(),

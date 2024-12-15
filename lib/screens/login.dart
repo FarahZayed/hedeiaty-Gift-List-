@@ -9,6 +9,7 @@ import 'package:hedieaty/models/userModel.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 
 
@@ -34,6 +35,15 @@ class _loginPageState extends State<loginPage> {
     if (pickedFile != null) {
       setState(() {
         profileImage = File(pickedFile.path);
+      });
+    }
+  }
+  Future<void> saveFCMToken(String userId) async {
+    final token = await FirebaseMessaging.instance.getToken();
+
+    if (token != null) {
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'fcmToken': token,
       });
     }
   }
@@ -65,7 +75,7 @@ class _loginPageState extends State<loginPage> {
           final data = userDoc.data()!;
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('userId',  data['uid']);
-
+          await saveFCMToken(data['uid']);
           Navigator.pushReplacementNamed(context, "/home", arguments: data);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -210,6 +220,7 @@ class _loginPageState extends State<loginPage> {
       },
     );
   }
+
 
   Widget _buildTextField({
     required TextEditingController controller,
