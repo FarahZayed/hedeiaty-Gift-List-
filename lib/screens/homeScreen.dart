@@ -75,10 +75,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 String phoneNumber = _phoneController.text.trim();
                 String name = _nameOfFriend.text.trim();
-                final  isOnline = await connectivityController.isOnline();
+                final isOnline = await connectivityController.isOnline();
+
                 if (phoneNumber.isNotEmpty && name.isNotEmpty) {
                   try {
-                    if(isOnline) {
+                    if (isOnline) {
                       QuerySnapshot userSnapshot = await FirebaseFirestore
                           .instance
                           .collection('users')
@@ -87,18 +88,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       if (userSnapshot.docs.isNotEmpty) {
                         var friendDoc = userSnapshot.docs.first;
-                        var friendData = friendDoc.data() as Map<String,
-                            dynamic>;
+                        var friendData = friendDoc.data() as Map<String, dynamic>;
+                        String friendId = friendDoc.id;
 
+                        // Add friendId to current user's friend list
                         await FirebaseFirestore.instance
                             .collection('users')
                             .doc(currentUserId)
                             .update({
-                          'friendIds': FieldValue.arrayUnion([friendDoc.id]),
+                          'friendIds': FieldValue.arrayUnion([friendId]),
                         });
 
+                        // Add current userId to the friend's friend list
+                        await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(friendId)
+                            .update({
+                          'friendIds': FieldValue.arrayUnion([currentUserId]),
+                        });
+
+                        // Update local state
                         setState(() {
-                          friendsIds.add(friendDoc.id);
+                          friendsIds.add(friendId);
                         });
 
                         // Show success Snackbar using the parent context
@@ -109,14 +120,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       } else {
                         // Show error Snackbar using the parent context
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text(
-                              "User not found with this phone number.")),
+                          const SnackBar(
+                              content: Text("User not found with this phone number.")),
                         );
                       }
-                    }
-                    else {
+                    } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("You can't add friend while you are offline")),
+                        const SnackBar(content: Text(
+                            "You can't add a friend while you are offline.")),
                       );
                     }
                   } catch (e) {
@@ -141,6 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
 
   Future<void> addEvent(String userId,String name, String category, String status, DateTime date, String location ,String description) async {
     try {

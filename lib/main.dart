@@ -64,22 +64,22 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initializeApp();
+    //_initializeApp();
   }
 
-  Future<void> _initializeApp() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString('userId');
-    print("Logged-in userId: $userId");
-
-    if (userId != null) {
-      setState(() {
-        _currentUserId = userId;
-      });
-
-
-    }
-  }
+  // Future<void> _initializeApp() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final userId = prefs.getString('userId');
+  //   print("Logged-in userId: $userId");
+  //
+  //   if (userId != null) {
+  //     setState(() {
+  //       _currentUserId = userId;
+  //     });
+  //
+  //
+  //   }
+  // }
 
   @override
   void dispose() {

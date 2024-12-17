@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hedieaty/widgets/colors.dart';
 import 'package:hedieaty/widgets/appBar.dart';
+import 'package:hedieaty/services/connectivityController.dart';
 
-import '../services/firestoreListener.dart';
+
 
 class friendGiftPage extends StatefulWidget {
   final String friendId;
@@ -55,42 +56,54 @@ class _friendGiftPageState extends State<friendGiftPage> {
 
   Future<void> _pledgeGift(int index) async {
     try {
+      bool isOnline = await connectivityController.isOnline();
       // Get the gift details
       var gift = friendGifts[index];
-
-      // Update the gift's status in Firestore
-      await FirebaseFirestore.instance.collection('gifts').doc(gift['id']).update({
-        'status': 'Pledged',
-      });
-
-      // Add a new document in the 'pledges' collection
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.currentUserId).get();
-      final friendDoc = await FirebaseFirestore.instance.collection('users').doc(widget.friendId).get();
-
-      if (userDoc.exists && friendDoc.exists) {
-        final currentUser = userDoc.data()!;
-        final friend = friendDoc.data()!;
-
-        await FirebaseFirestore.instance.collection('pledges').add({
-          'giftName': gift['name'],
-          'pledgedByUserId': widget.currentUserId,
-          'pledgedByUserName': currentUser['username'],
-          'pledgedToUserId': widget.friendId,
-          'pledgedToUserName': friend['username'],
-          'timestamp': FieldValue.serverTimestamp(),
+      if(isOnline) {
+        // Update the gift's status in Firestore
+        await FirebaseFirestore.instance.collection('gifts')
+            .doc(gift['id'])
+            .update({
+          'status': 'Pledged',
         });
 
+        // Add a new document in the 'pledges' collection
+        final userDoc = await FirebaseFirestore.instance.collection('users')
+            .doc(widget.currentUserId)
+            .get();
+        final friendDoc = await FirebaseFirestore.instance.collection('users')
+            .doc(widget.friendId)
+            .get();
 
-        // Update UI
-        setState(() {
-          friendGifts.removeAt(index);
-        });
+        if (userDoc.exists && friendDoc.exists) {
+          final currentUser = userDoc.data()!;
+          final friend = friendDoc.data()!;
 
+          await FirebaseFirestore.instance.collection('pledges').add({
+            'giftName': gift['name'],
+            'pledgedByUserId': widget.currentUserId,
+            'pledgedByUserName': currentUser['username'],
+            'pledgedToUserId': widget.friendId,
+            'pledgedToUserName': friend['username'],
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+
+
+          // Update UI
+          setState(() {
+            friendGifts.removeAt(index);
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Gift pledged successfully.")),
+          );
+        } else {
+          throw "User or friend details not found.";
+        }
+      }else{
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Gift pledged successfully.")),
+          const SnackBar(content: Text("You can't pledge gift while you are offline")),
         );
-      } else {
-        throw "User or friend details not found.";
       }
     } catch (e) {
       print("Error pledging gift: $e");

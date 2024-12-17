@@ -75,10 +75,8 @@ class _loginPageState extends State<loginPage> {
 
         if (userDoc.exists) {
           final data = userDoc.data()!;
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('userId',  data['uid']);
+
           await saveFCMToken(data['uid']);
-          // Start listening for Firestore updates for pledges
           FirestoreListener.listenForPledges(data['uid']);
 
           Navigator.pushReplacementNamed(context, "/home", arguments: data);
@@ -142,8 +140,9 @@ class _loginPageState extends State<loginPage> {
         emailController.clear();
         passwordController.clear();
         usernameController.clear();
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('userId', firebaseUser.uid);
+
+        await saveFCMToken(firebaseUser.uid);
+        FirestoreListener.listenForPledges(firebaseUser.uid);
         Navigator.pushReplacementNamed(context, "/home", arguments: userData);
 
 

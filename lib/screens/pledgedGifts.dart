@@ -24,52 +24,26 @@ class _pledgedGiftsPageState extends State<pledgedGiftsPage> {
 
   Future<void> _fetchPledgedGifts() async {
     try {
-
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.userId)
+      // Query the 'pledges' collection where the user is the pledgedByUserId
+      final pledgesSnapshot = await FirebaseFirestore.instance
+          .collection('pledges')
+          .where('pledgedByUserId', isEqualTo: widget.userId)
           .get();
 
-      if (userDoc.exists) {
-        List<String> eventIds = List<String>.from(userDoc.data()?['eventIds'] ?? []);
+      // Transform the fetched data
+      final fetchedPledgedGifts = pledgesSnapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'giftName': data['giftName'] ?? 'Unnamed Gift',
+          'pledgedToUserName': data['pledgedToUserName'] ?? 'Unknown User',
+        };
+      }).toList();
 
-        List<Map<String, dynamic>> allPledgedGifts = [];
-
-        for (String eventId in eventIds) {
-
-          final eventDoc = await FirebaseFirestore.instance
-              .collection('event')
-              .doc(eventId)
-              .get();
-
-          if (eventDoc.exists) {
-            List<String> giftIds = List<String>.from(eventDoc.data()?['giftIds'] ?? []);
-
-            for (String giftId in giftIds) {
-
-              final giftDoc = await FirebaseFirestore.instance
-                  .collection('gifts')
-                  .doc(giftId)
-                  .get();
-
-              if (giftDoc.exists) {
-                final giftData = giftDoc.data()!;
-                if (giftData['status'] == 'Pledged') {
-                  allPledgedGifts.add({
-                    'giftName': giftData['name'],
-                    'eventName': eventDoc.data()?['name'] ?? "Unknown Friend",
-                  });
-                }
-              }
-            }
-          }
-        }
-
-        setState(() {
-          pledgedGifts = allPledgedGifts;
-          isLoading = false;
-        });
-      }
+      // Update the state with the fetched data
+      setState(() {
+        pledgedGifts = fetchedPledgedGifts;
+        isLoading = false;
+      });
     } catch (e) {
       print("Error fetching pledged gifts: $e");
       setState(() {
@@ -77,8 +51,6 @@ class _pledgedGiftsPageState extends State<pledgedGiftsPage> {
       });
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -103,8 +75,9 @@ class _pledgedGiftsPageState extends State<pledgedGiftsPage> {
                 borderRadius: BorderRadius.circular(15.0),
               ),
               elevation: 15.0,
-              color:  isDarkMode ? Colors.black : myAppColors.lightWhite,
-
+              color: isDarkMode
+                  ? Colors.black
+                  : myAppColors.lightWhite,
               child: ListTile(
                 leading: CircleAvatar(
                   backgroundColor: myAppColors.secondaryColor,
@@ -129,7 +102,7 @@ class _pledgedGiftsPageState extends State<pledgedGiftsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Event: ${gift['eventName']}",
+                      "Pledged to: ${gift['pledgedToUserName']}",
                       style: TextStyle(
                         color: isDarkMode
                             ? myAppColors.lightWhite.withOpacity(0.7)
