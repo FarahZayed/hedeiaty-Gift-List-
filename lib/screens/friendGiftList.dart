@@ -3,12 +3,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hedieaty/widgets/colors.dart';
 import 'package:hedieaty/widgets/appBar.dart';
 
+import '../services/firestoreListener.dart';
+
 class friendGiftPage extends StatefulWidget {
   final String friendId;
   final String eventId;
+  final String currentUserId;
 
-  const friendGiftPage({super.key, required this.friendId, required this.eventId});
-
+  const friendGiftPage({
+    super.key,
+    required this.friendId,
+    required this.eventId,
+    required this.currentUserId,
+  });
   @override
   _friendGiftPageState createState() => _friendGiftPageState();
 }
@@ -48,19 +55,43 @@ class _friendGiftPageState extends State<friendGiftPage> {
 
   Future<void> _pledgeGift(int index) async {
     try {
+      // Get the gift details
       var gift = friendGifts[index];
 
+      // Update the gift's status in Firestore
       await FirebaseFirestore.instance.collection('gifts').doc(gift['id']).update({
         'status': 'Pledged',
       });
 
-      setState(() {
-        friendGifts.removeAt(index);
-      });
+      // Add a new document in the 'pledges' collection
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.currentUserId).get();
+      final friendDoc = await FirebaseFirestore.instance.collection('users').doc(widget.friendId).get();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Gift pledged successfully.")),
-      );
+      if (userDoc.exists && friendDoc.exists) {
+        final currentUser = userDoc.data()!;
+        final friend = friendDoc.data()!;
+
+        await FirebaseFirestore.instance.collection('pledges').add({
+          'giftName': gift['name'],
+          'pledgedByUserId': widget.currentUserId,
+          'pledgedByUserName': currentUser['username'],
+          'pledgedToUserId': widget.friendId,
+          'pledgedToUserName': friend['username'],
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+
+        // Update UI
+        setState(() {
+          friendGifts.removeAt(index);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Gift pledged successfully.")),
+        );
+      } else {
+        throw "User or friend details not found.";
+      }
     } catch (e) {
       print("Error pledging gift: $e");
       ScaffoldMessenger.of(context).showSnackBar(
@@ -68,6 +99,7 @@ class _friendGiftPageState extends State<friendGiftPage> {
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

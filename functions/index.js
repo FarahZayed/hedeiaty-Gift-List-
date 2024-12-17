@@ -27,44 +27,88 @@
 //  response.send("Hello from Firebase!");
 //});
 
-const functions = require('firebase-functions'); // Import Firebase Functions SDK
-const admin = require('firebase-admin'); // Import Firebase Admin SDK
+//const functions = require('firebase-functions'); // Import Firebase Functions SDK
+//const admin = require('firebase-admin'); // Import Firebase Admin SDK
+//
+//// Initialize Firebase Admin SDK
+//admin.initializeApp();
+
+// Firestore Trigger for Pledge Notifications
+//exports.sendPledgeNotification = functions.firestore
+//  .document('pledges/{pledgeId}')
+//  .onCreate(async (snapshot, context) => {
+//    try {
+//      // Extract pledge data
+//      const pledgeData = snapshot.data();
+//      const { pledgedByUserId, pledgedToUserId, giftName } = pledgeData;
+//
+//      // Fetch the FCM token of the user being pledged to
+//      const userDoc = await admin.firestore().collection('users').doc(pledgedToUserId).get();
+//      const fcmToken = userDoc.data()?.fcmToken;
+//
+//      // Check if FCM token exists
+//      if (fcmToken) {
+//        const payload = {
+//          notification: {
+//            title: 'Gift Pledged!',
+//            body: `User ${pledgedByUserId} pledged "${giftName}" to you.`,
+//          },
+//        };
+//
+//        // Send notification
+//        await admin.messaging().sendToDevice(fcmToken, payload);
+//        console.log('Notification sent successfully');
+//      } else {
+//        console.log('FCM token not found for user:', pledgedToUserId);
+//      }
+//    } catch (error) {
+//      console.error('Error sending notification:', error);
+//    }
+//  });
+//
+//  console.log('Pledge data:', pledgeData);
+//  console.log('User document fetched:', userDoc.data());
+
+// Import required modules
+const functions = require("firebase-functions"); // Firebase Functions SDK
+const admin = require("firebase-admin"); // Firebase Admin SDK
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
 
 // Firestore Trigger for Pledge Notifications
 exports.sendPledgeNotification = functions.firestore
-  .document('pledges/{pledgeId}')
+  .document("pledges/{pledgeId}")
   .onCreate(async (snapshot, context) => {
     try {
       // Extract pledge data
       const pledgeData = snapshot.data();
       const { pledgedByUserId, pledgedToUserId, giftName } = pledgeData;
 
+      console.log("Pledge data received:", pledgeData);
+
       // Fetch the FCM token of the user being pledged to
-      const userDoc = await admin.firestore().collection('users').doc(pledgedToUserId).get();
+      const userDoc = await admin.firestore().collection("users").doc(pledgedToUserId).get();
       const fcmToken = userDoc.data()?.fcmToken;
+
+      console.log("Fetched FCM Token:", fcmToken);
 
       // Check if FCM token exists
       if (fcmToken) {
         const payload = {
           notification: {
-            title: 'Gift Pledged!',
+            title: "Gift Pledged!",
             body: `User ${pledgedByUserId} pledged "${giftName}" to you.`,
           },
         };
 
         // Send notification
         await admin.messaging().sendToDevice(fcmToken, payload);
-        console.log('Notification sent successfully');
+        console.log("Notification sent successfully");
       } else {
-        console.log('FCM token not found for user:', pledgedToUserId);
+        console.log("FCM token not found for user:", pledgedToUserId);
       }
     } catch (error) {
-      console.error('Error sending notification:', error);
+      console.error("Error sending notification:", error);
     }
   });
-
-  console.log('Pledge data:', pledgeData);
-  console.log('User document fetched:', userDoc.data());

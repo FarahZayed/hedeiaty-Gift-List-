@@ -16,7 +16,14 @@ import 'package:uuid/uuid.dart';
 class eventList extends StatefulWidget {
   final String userId;
   final bool isLoggedIn;
-  const eventList({super.key, required this.userId, required this.isLoggedIn});
+  final String currentUserId;
+
+  const eventList({
+    Key? key,
+    required this.userId,
+    required this.isLoggedIn,
+    required this.currentUserId,
+  }) : super(key: key);
 
   @override
   State<eventList> createState() => _eventListState();
@@ -520,13 +527,14 @@ class _eventListState extends State<eventList> {
                       onPressed: () {
                         print('user id '+ widget.userId);
                         print("event id "+event['id']);
+                        print("current id "+widget.currentUserId);
                         Navigator.pushNamed(
                           context,
                           '/friendGiftPage',
                           arguments: {
                             'friendId': widget.userId,
                             'eventId': event['id'],
-                            //'isLoggedin':false,
+                            'currentUserId':widget.currentUserId
                           },
                         );
 

@@ -260,6 +260,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   arguments: {
                     'userId': user['uid'],
                     'isLoggedIn': true,
+                    "currentUserId": ""
+
                   },
                 ),
               ),
@@ -369,10 +371,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () async{
                           final  isOnline = await connectivityController.isOnline();
                           if(isOnline) {
+                            print ("USER ID "+ user['uid']);
                             Navigator.pushNamed(context, "/eventList",
                                 arguments: {
                                   'userId': friendData['uid'],
                                   'isLoggedIn': false,
+                                  'currentUserId':user['uid']
                                 });
                           }
                           else{

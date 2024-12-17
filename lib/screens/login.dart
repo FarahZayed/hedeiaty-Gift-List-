@@ -11,6 +11,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+import '../services/firestoreListener.dart';
+
 
 
 
@@ -40,13 +42,13 @@ class _loginPageState extends State<loginPage> {
   }
   Future<void> saveFCMToken(String userId) async {
     final token = await FirebaseMessaging.instance.getToken();
-
     if (token != null) {
       await FirebaseFirestore.instance.collection('users').doc(userId).update({
         'fcmToken': token,
       });
     }
   }
+
 
 
 
@@ -76,6 +78,9 @@ class _loginPageState extends State<loginPage> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('userId',  data['uid']);
           await saveFCMToken(data['uid']);
+          // Start listening for Firestore updates for pledges
+          FirestoreListener.listenForPledges(data['uid']);
+
           Navigator.pushReplacementNamed(context, "/home", arguments: data);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
