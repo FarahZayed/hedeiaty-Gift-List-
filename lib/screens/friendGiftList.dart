@@ -148,7 +148,27 @@ class _friendGiftPageState extends State<friendGiftPage> {
               elevation: 5.0,
               color: isDarkMode ? Colors.black : myAppColors.lightWhite,
               child: ListTile(
-                leading: CircleAvatar(
+                leading: gift['image'] != null && gift['image'].isNotEmpty
+                    ? ClipRRect(
+                  borderRadius: BorderRadius.circular(25.0), // Match CircleAvatar shape
+                  child: Image.network(
+                    gift['image'],
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover, // Ensures the image covers the area properly
+                    errorBuilder: (context, error, stackTrace) {
+                      // Fallback in case of invalid URL
+                      return CircleAvatar(
+                        backgroundColor: myAppColors.secondaryColor,
+                        child: Icon(
+                          Icons.card_giftcard,
+                          color: isDarkMode ? myAppColors.lightWhite : myAppColors.darkBlack,
+                        ),
+                      );
+                    },
+                  ),
+                )
+                    : CircleAvatar(
                   backgroundColor: myAppColors.secondaryColor,
                   child: Icon(
                     Icons.card_giftcard,

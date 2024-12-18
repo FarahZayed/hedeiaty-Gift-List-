@@ -7,8 +7,11 @@ import 'package:hedieaty/screens/giftDetails.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hedieaty/services/connectivityController.dart';
 import 'package:hedieaty/data/db.dart';
-import 'package:hedieaty/models/eventModel.dart';
 import 'package:uuid/uuid.dart';
+
+import 'dart:io';
+import 'package:http/http.dart' as http;
+
 
 class giftList extends StatefulWidget {
   final String userId;
@@ -137,20 +140,29 @@ class _giftListPageState extends State<giftList> {
     });
   }
 
+
   Future<void> addGift(String name, String category, String description, double price, String? imagePath, String eventId) async {
     try {
       bool online = await connectivityController.isOnline();
       final db = await LocalDatabase().database;
 
       String giftId;
-      String eventName = ''; // Initialize to store the event name
+      String eventName = '';
+      String imageUrl = "";
 
       if (online) {
-        // Online: Save gift to Firestore
+
+        // try {
+        //   imageUrl = await _uploadImageToImgur(imagePath!);
+        // } catch (e) {
+        //   print("Image upload failed: $e");
+        //   imageUrl = "";
+        // }
+
         final newGiftRef = FirebaseFirestore.instance.collection('gifts').doc();
         giftId = newGiftRef.id;
 
-        // Fetch event name from Firestore
+
         final eventDoc = await FirebaseFirestore.instance.collection('event').doc(eventId).get();
         if (eventDoc.exists) {
           eventName = eventDoc.data()?['name'] ?? 'Unknown Event';
@@ -166,12 +178,12 @@ class _giftListPageState extends State<giftList> {
           'eventId': eventId,
         });
 
-        // Update the event's giftIds in Firestore
+
         await FirebaseFirestore.instance.collection('event').doc(eventId).update({
           'giftIds': FieldValue.arrayUnion([giftId]),
         });
 
-        // Add the gift to the local database for syncing
+
         await db.insert('gifts', {
           'id': giftId,
           'name': name,
@@ -181,18 +193,16 @@ class _giftListPageState extends State<giftList> {
           'status': 'Available',
           'image': imagePath,
           'eventId': eventId,
-          'pendingSync': 0, // Synced
+          'pendingSync': 0,
         });
       } else {
         // Offline: Save gift locally
         giftId = const Uuid().v4();
 
-        // Fetch event name from the local database
         final eventDoc = await db.query('event', where: 'id = ?', whereArgs: [eventId]);
         if (eventDoc.isNotEmpty) {
           eventName = eventDoc.first['name'].toString() ?? 'Unknown Event';
 
-          // Update the event's gift list locally
           List<String> giftIds = jsonDecode(eventDoc.first['giftIds'].toString() ?? '[]');
           giftIds.add(giftId);
 
@@ -214,11 +224,11 @@ class _giftListPageState extends State<giftList> {
           'status': 'Available',
           'image': imagePath,
           'eventId': eventId,
-          'pendingSync': 1, // Pending sync
+          'pendingSync': 1,
         });
       }
 
-      // Add the gift to the UI (local)
+
       setState(() {
         gifts.add({
           'id': giftId,
@@ -244,6 +254,30 @@ class _giftListPageState extends State<giftList> {
     }
   }
 
+  Future<String> _uploadImageToImgur(String imagePath) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://api.imgur.com/3/image'),
+      );
+
+      request.headers['Authorization'] = '6035c0610d863f1';
+      request.files.add(await http.MultipartFile.fromPath('image', imagePath));
+
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        var responseData = await response.stream.bytesToString();
+        var jsonResponse = json.decode(responseData);
+        return jsonResponse['data']['link'];
+      } else {
+        print("Failed to upload image: ${response.statusCode}");
+        return "https://via.placeholder.com/150";
+      }
+    } catch (e) {
+      print("Error uploading image to Imgur: $e");
+      return "https://via.placeholder.com/150"; // Fallback image
+    }
+  }
 
 
   Future<void> editGift(String giftId, String name, String category, String description, double price, String? imagePath, String newEventId) async {
@@ -461,8 +495,10 @@ class _giftListPageState extends State<giftList> {
           double.parse(result['price']),
           result['image'],
           result['eventId'],
+
         );
       } else {
+        print("URL:: "+ result['image']);
         await addGift(
           result['name'],
           result['category'],
@@ -470,7 +506,6 @@ class _giftListPageState extends State<giftList> {
           double.parse(result['price']),
           result['image'],
           result['eventId'],
-
         );
       }
     }
@@ -527,6 +562,30 @@ class _giftListPageState extends State<giftList> {
                   margin: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 10.0),
                   elevation: 15.0,
                   child: ListTile(
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(8.0),
+                      child: gift['image'] != null && gift['image'].isNotEmpty
+                          ? Image.network(
+                        gift['image'],
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Image.asset(
+                            'assets/default_image.png',
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                          );
+                        },
+                      )
+                          : Image.asset(
+                        'asset/img.png',
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                     title: Text(
                       gift['name']??"No Name",
                       style: TextStyle(

@@ -50,6 +50,7 @@ dependencies:
   shared_preferences: ^2.3.3
   firebase_messaging: ^15.1.6
   flutter_local_notifications: ^18.0.1
+  http: ^1.2.2
 
 
 dev_dependencies:
@@ -78,6 +79,7 @@ flutter:
   assets:
      - asset/profile.png
      - asset/login-background.png
+     - asset/img.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

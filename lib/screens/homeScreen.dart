@@ -37,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _addFriendManually(String currentUserId, List<dynamic> friendsIds) {
     showDialog(
-      context: context, // Parent context is passed here
+      context: context,
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text("Add Friend Manually"),
