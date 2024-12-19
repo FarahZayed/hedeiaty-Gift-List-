@@ -67,7 +67,7 @@ class _ManageEventsPageState extends State<ManageEventsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditMode ? 'Edit Event' : 'Add Event'),
+        title: Text(isEditMode ? 'Edit Events' : 'Add Events'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

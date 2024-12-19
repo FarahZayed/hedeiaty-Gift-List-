@@ -157,7 +157,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> addEvent(String userId,String name, String category, String status, DateTime date, String location ,String description) async {
     try {
+      print("ADD EVENT");
       final Uuid uuid = Uuid();
+      print("Received date: ${date}");
       bool online = await connectivityController.isOnline();
       final newEvent = Event(
         id: uuid.v4(),

@@ -18,7 +18,7 @@ if %errorlevel% neq 0 (
 
 REM Step 3: Wait for tests to finish
 echo Waiting for tests to complete...
-timeout /t 150 >nul
+timeout /t 180 >nul
 
 REM Step 4: Stop video recording
 echo Stopping video recording...
