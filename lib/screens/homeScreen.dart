@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hedieaty/screens/pledgedGifts.dart';
+import 'package:hedieaty/screens/profile.dart';
 import 'package:hedieaty/widgets/colors.dart';
 import 'package:hedieaty/widgets/appBar.dart';
 import 'package:hedieaty/data/db.dart';
@@ -9,6 +11,9 @@ import 'package:uuid/uuid.dart';
 //firebase
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import 'eventList.dart';
+import 'giftList.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -160,6 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
       print("ADD EVENT");
       final Uuid uuid = Uuid();
       print("Received date: ${date}");
+
       bool online = await connectivityController.isOnline();
       final newEvent = Event(
         id: uuid.v4(),
@@ -260,32 +266,87 @@ class _HomeScreenState extends State<HomeScreen> {
               ListTile(
                 leading: const Icon(Icons.person, color: myAppColors.primColor),
                 title: const Text('Profile'),
-                onTap: () => Navigator.pushNamed(context, "/profile", arguments: user),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => profilePage(user: user),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(1.0, 0.0);
+                        const end = Offset.zero;
+                        const curve = Curves.easeInOut;
+                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                        var offsetAnimation = animation.drive(tween);
+                        return SlideTransition(position: offsetAnimation, child: child);
+                      },
+                    ),
+                  );
+                },
               ),
+
               ListTile(
                 leading: const Icon(Icons.card_giftcard, color: myAppColors.primColor),
                 title: const Text('My Gift List'),
-                onTap: () => Navigator.pushNamed(context, "/giftList",arguments: {'userId': user['uid'],'eventId': null,'isLoggedin':true}),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => giftList(userId: user['uid'],eventId: null, isLoggedin: true,),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(1.0, 0.0);
+                        const end = Offset.zero;
+                        const curve = Curves.easeInOut;
+                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                        var offsetAnimation = animation.drive(tween);
+                        return SlideTransition(position: offsetAnimation, child: child);
+                      },
+                    ),
+                  );
+                },
               ),
+
               ListTile(
                 leading: const Icon(Icons.event, color: myAppColors.primColor),
                 title: const Text('My Events'),
-                onTap: () => Navigator.pushNamed(
-                  context,
-                  "/eventList",
-                  arguments: {
-                    'userId': user['uid'],
-                    'isLoggedIn': true,
-                    "currentUserId": ""
-
-                  },
-                ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => eventList(userId: user['uid'],isLoggedIn: true, currentUserId: "",),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(0.0, 1.0);
+                        const end = Offset.zero;
+                        const curve = Curves.easeInOut;
+                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                        var offsetAnimation = animation.drive(tween);
+                        return SlideTransition(position: offsetAnimation, child: child);
+                      },
+                    ),
+                  );
+                },
               ),
+
               ListTile(
                 leading: const Icon(Icons.card_giftcard_outlined, color: myAppColors.primColor),
                 title: const Text("My Pledged Gifts"),
-                onTap: () => Navigator.pushNamed(context, "/pledgedGifts",arguments: user['uid']),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => pledgedGiftsPage(userId: user['uid']),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(0.0, 1.0);
+                        const end = Offset.zero;
+                        const curve = Curves.easeInOut;
+                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                        var offsetAnimation = animation.drive(tween);
+                        return SlideTransition(position: offsetAnimation, child: child);
+                      },
+                    ),
+                  );
+                },
               ),
+
               const Spacer(),
               Divider(
                 color: isDarkMode ? Colors.white30 : Colors.black38,
@@ -432,8 +493,27 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () async {
                 final result = await Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => ManageEventsPage(),
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) => ManageEventsPage(),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      const begin = Offset(1.0, 0.0);
+                      const end = Offset.zero;
+                      const curve = Curves.easeInOut;
+
+                      final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                      final offsetAnimation = animation.drive(tween);
+
+                      final fadeAnimation = Tween(begin: 0.0, end: 1.0).animate(animation);
+
+                      return SlideTransition(
+                        position: offsetAnimation,
+                        child: FadeTransition(
+                          opacity: fadeAnimation,
+                          child: child,
+                        ),
+                      );
+                    },
+                   // transitionDuration: const Duration(seconds: 1),
                   ),
                 );
 

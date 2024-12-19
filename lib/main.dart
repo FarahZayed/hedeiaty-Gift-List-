@@ -155,7 +155,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             isLoggedin: args['isLoggedin'],
           );
         },
-        "/profile": (context) => profilePage(),
+        "/profile": (context) => profilePage(user: ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>),
         "/pledgedGifts": (context) => pledgedGiftsPage(
             userId: ModalRoute.of(context)?.settings.arguments as String),
         "/friendGiftPage": (context) {

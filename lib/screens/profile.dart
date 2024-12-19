@@ -8,7 +8,9 @@ import 'package:hedieaty/data/db.dart';
 import 'package:sqflite/sqflite.dart';
 
 class profilePage extends StatefulWidget {
+  final Map<String, dynamic> user;
 
+  profilePage({required this.user});
   @override
   _profilePageState createState() => _profilePageState();
 }
@@ -103,7 +105,7 @@ class _profilePageState extends State<profilePage> {
 
   @override
   Widget build(BuildContext context) {
-    Map<String,dynamic> user = ModalRoute.of(context)!.settings.arguments as Map<String,dynamic>;
+   // Map<String,dynamic> user = ModalRoute.of(context)!.settings.arguments as Map<String,dynamic>;
     bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     final TextEditingController userNameController = TextEditingController();
@@ -128,7 +130,7 @@ class _profilePageState extends State<profilePage> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      "${user['username']}",
+                      "${widget.user['username']}",
                       style: TextStyle(
                         fontSize: 22.0,
                         fontWeight: FontWeight.bold,
@@ -136,7 +138,7 @@ class _profilePageState extends State<profilePage> {
                       ),
                     ),
                     Text(
-                      "${user['phone']}",
+                      "${widget.user['phone']}",
                       style: TextStyle(
                         fontSize: 14.0,
                         color: isDarkMode ? myAppColors.lightWhite.withOpacity(0.7) : myAppColors.darkBlack.withOpacity(0.7),
@@ -189,7 +191,7 @@ class _profilePageState extends State<profilePage> {
                                           keyboardType: TextInputType.name,
                                           decoration: InputDecoration(
                                             labelText: "Edit your username",
-                                            hintText: user['username'],
+                                            hintText: widget.user['username'],
                                             border: const OutlineInputBorder(),
                                           ),
                                         ),
@@ -199,7 +201,7 @@ class _profilePageState extends State<profilePage> {
                                           keyboardType: TextInputType.emailAddress,
                                           decoration: InputDecoration(
                                             labelText: "Edit your phone number",
-                                            hintText: user['phone'] ?? 'You have no phone number saved',
+                                            hintText: widget.user['phone'] ?? 'You have no phone number saved',
                                             border: const OutlineInputBorder(),
                                           ),
                                         ),
@@ -217,7 +219,7 @@ class _profilePageState extends State<profilePage> {
                                   TextButton(
                                     onPressed: (){
                                       setState(() {
-                                          _changeProfile(userNameController.text.trim(), phoneController.text.trim(),user);
+                                          _changeProfile(userNameController.text.trim(), phoneController.text.trim(),widget.user);
                                       });
 
                                     },
@@ -263,7 +265,7 @@ class _profilePageState extends State<profilePage> {
                   trailing: Icon(Icons.arrow_forward_ios, color: myAppColors.secondaryColor),
                   onTap: () {
                     // Navigate to My Pledged Gifts Page
-                    Navigator.pushNamed(context, "/pledgedGifts", arguments: user['uid']);
+                    Navigator.pushNamed(context, "/pledgedGifts", arguments: widget.user['uid']);
                   },
                 ),
               ),

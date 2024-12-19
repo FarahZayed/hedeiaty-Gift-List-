@@ -28,7 +28,7 @@ class LocalDatabase {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -81,6 +81,9 @@ class LocalDatabase {
       ''');
 
     }
+    if(oldVersion<6){
+      await db.execute('ALTER TABLE user ADD COLUMN fcmToken TEXT');
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -94,7 +97,8 @@ class LocalDatabase {
         eventIds TEXT,
         friendIds TEXT,
         photoURL TEXT,
-        pendingSync INTEGER DEFAULT 0
+        pendingSync INTEGER DEFAULT 0,
+        fcmToken TEXT
       );
     ''');
 
@@ -276,6 +280,7 @@ class LocalDatabase {
               eventIds: List<String>.from(userData['eventIds'] ?? []),
               photoURL: userData['photoURL'] ?? '',
               pendingSync: 0,
+              fcmToken: userData['fcmToken']
             );
 
 

@@ -9,6 +9,7 @@ class UserlocalDB {
   final List<String>eventIds;
   final String photoURL;
   int pendingSync;
+  final String fcmToken;
 
   UserlocalDB({
     required this.uid,
@@ -19,6 +20,7 @@ class UserlocalDB {
     required this.friendIds,
     required this.photoURL,
     this.pendingSync=0,
+    required this.fcmToken
   });
 
   Map<String, dynamic> toMap() {
@@ -31,6 +33,7 @@ class UserlocalDB {
       'eventIds': jsonEncode(eventIds),   // Convert list to JSON string
       'photoURL': photoURL,
       'pendingSync': pendingSync,
+      'fcmToken':fcmToken
     };
   }
 
@@ -49,7 +52,8 @@ class UserlocalDB {
           ? List<String>.from(jsonDecode(map['eventIds'])) // Decode JSON string
           : List<String>.from(map['eventIds'] ?? []),
       photoURL: map['photoURL'] ?? '',
-      pendingSync: map['pendingSync'] ?? 0, // Default to 0 if null
+      pendingSync: map['pendingSync'] ?? 0,
+      fcmToken: map['fcmToken']
     );
   }
 
