@@ -150,14 +150,14 @@ class _friendGiftPageState extends State<friendGiftPage> {
               child: ListTile(
                 leading: gift['image'] != null && gift['image'].isNotEmpty
                     ? ClipRRect(
-                  borderRadius: BorderRadius.circular(25.0), // Match CircleAvatar shape
+                  borderRadius: BorderRadius.circular(25.0),
                   child: Image.network(
                     gift['image'],
                     width: 50,
                     height: 50,
-                    fit: BoxFit.cover, // Ensures the image covers the area properly
+                    fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
-                      // Fallback in case of invalid URL
+
                       return CircleAvatar(
                         backgroundColor: myAppColors.secondaryColor,
                         child: Icon(

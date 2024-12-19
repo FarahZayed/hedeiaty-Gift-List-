@@ -152,13 +152,6 @@ class _giftListPageState extends State<giftList> {
 
       if (online) {
 
-        // try {
-        //   imageUrl = await _uploadImageToImgur(imagePath!);
-        // } catch (e) {
-        //   print("Image upload failed: $e");
-        //   imageUrl = "";
-        // }
-
         final newGiftRef = FirebaseFirestore.instance.collection('gifts').doc();
         giftId = newGiftRef.id;
 
@@ -254,30 +247,6 @@ class _giftListPageState extends State<giftList> {
     }
   }
 
-  Future<String> _uploadImageToImgur(String imagePath) async {
-    try {
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('https://api.imgur.com/3/image'),
-      );
-
-      request.headers['Authorization'] = '6035c0610d863f1';
-      request.files.add(await http.MultipartFile.fromPath('image', imagePath));
-
-      var response = await request.send();
-      if (response.statusCode == 200) {
-        var responseData = await response.stream.bytesToString();
-        var jsonResponse = json.decode(responseData);
-        return jsonResponse['data']['link'];
-      } else {
-        print("Failed to upload image: ${response.statusCode}");
-        return "https://via.placeholder.com/150";
-      }
-    } catch (e) {
-      print("Error uploading image to Imgur: $e");
-      return "https://via.placeholder.com/150"; // Fallback image
-    }
-  }
 
 
   Future<void> editGift(String giftId, String name, String category, String description, double price, String? imagePath, String newEventId) async {

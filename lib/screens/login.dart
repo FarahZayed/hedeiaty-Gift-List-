@@ -4,11 +4,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:hedieaty/widgets/colors.dart';
-import 'package:hedieaty/data/db.dart';
-import 'package:hedieaty/models/userModel.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../services/firestoreListener.dart';
@@ -77,8 +76,9 @@ class _loginPageState extends State<loginPage> {
           final data = userDoc.data()!;
 
           await saveFCMToken(data['uid']);
-          FirestoreListener.listenForPledges(data['uid']);
-
+          //FirestoreListener.listenForPledges(data['uid']);
+          print(data.toString());
+          print("go to home");
           Navigator.pushReplacementNamed(context, "/home", arguments: data);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -320,7 +320,7 @@ class _loginPageState extends State<loginPage> {
                     ],
                     if (isLogin) ...[
                       const Text(
-                        'Login',
+                        'Logining In',
                         style: TextStyle(
                           fontSize: 28.0,
                           fontWeight: FontWeight.bold,

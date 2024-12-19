@@ -18,12 +18,13 @@ class NotificationService {
     required String body,
   }) async {
     print("Sending notification...");
-    const androidDetails = AndroidNotificationDetails(
+    const androidDetails = const AndroidNotificationDetails(
       'channel_id',
       'channel_name',
       channelDescription: 'This channel is for important notifications.',
       importance: Importance.high,
       priority: Priority.high,
+
     );
 
     const notificationDetails = NotificationDetails(

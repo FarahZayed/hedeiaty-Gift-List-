@@ -29,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+
   @override
   void initState() {
     super.initState();
@@ -204,6 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final Map<String, dynamic> user = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     List <dynamic> friendsIds=user['friendIds'];
     isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    print("ON BUILDD");
 
 
     return Scaffold(
