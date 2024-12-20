@@ -27,19 +27,78 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool isDarkMode = false;
-  bool showSearchField = false;
-  final TextEditingController _searchController = TextEditingController();
+ // final TextEditingController _searchController = TextEditingController();
   final TextEditingController _nameOfFriend = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
+  // List<dynamic> filteredFriendsIds = [];
+  // List<dynamic> friendsIds = [];
+  late TextEditingController _searchController;
+  late List<dynamic> friendsIds;
+  late List<dynamic> filteredFriendsIds;
+  late Map<String, dynamic> user;
 
   @override
   void initState() {
     super.initState();
-    //_requestPermission();
+    _searchController = TextEditingController();
+
   }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    user = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    friendsIds = user['friendIds'];
+    filteredFriendsIds = List.from(friendsIds);
+    _searchController = TextEditingController();user = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    isDarkMode = Theme.of(context).brightness == Brightness.dark;
+  }
+
+
+  @override
+  void dispose() {
+
+    _searchController.dispose();
+    _nameOfFriend.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+
+  void _filterFriends(String query) async {
+    query = query.toLowerCase();
+    List<String> filteredIds = [];
+
+    if (query.isEmpty) {
+      filteredIds = List.from(friendsIds);
+    } else {
+
+      final List<String> result = await Future.wait(friendsIds.map((id) async {
+        final friendDoc = await FirebaseFirestore.instance.collection('users').doc(id).get();
+        final friendData = friendDoc.data();
+        if (friendData != null) {
+          final username = friendData['username']?.toLowerCase() ?? '';
+
+          if (username.contains(query)) {
+            return id;
+          }
+        }
+        return "";
+      }));
+
+      filteredIds = result.where((id) => id != "").toList();
+
+    }
+
+    setState(() {
+      filteredFriendsIds = filteredIds;
+
+    });
+  }
+
+
 
   void _addFriendManually(String currentUserId, List<dynamic> friendsIds) {
     showDialog(
@@ -210,11 +269,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Map<String, dynamic> user = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-    List <dynamic> friendsIds=user['friendIds'];
-    isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    print("ON BUILDD");
 
+    isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -359,7 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(color: Colors.red),
                 ),
                 onTap: () async {
-                  // Sign-out logic
+
                   try {
                     await FirebaseAuth.instance.signOut();
                     Navigator.pushReplacementNamed(context, '/login');
@@ -391,33 +447,36 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderSide: BorderSide.none,
                 ),
               ),
+              onSubmitted: (value) => _filterFriends(value), // Trigger filtering on submit
             ),
           ),
 
-          //Friends list
+
           Expanded(
-            child: friendsIds.isEmpty
-                ? Container(
-               child: Center(child: Text("You have no friends"),),
-            ):ListView.builder(
-              itemCount: friendsIds.length,
+            child: filteredFriendsIds.isEmpty
+                ? Center(child: Text("No friends found"))
+                : ListView.builder(
+              itemCount: filteredFriendsIds.length,
               itemBuilder: (context, index) {
                 return FutureBuilder<DocumentSnapshot>(
-                  future: FirebaseFirestore.instance.collection('users').doc(friendsIds[index]).get(),
+                  future: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(filteredFriendsIds[index])
+                      .get(),
                   builder: (context, snapshot) {
+                    print("idss:: "+ filteredFriendsIds.toString());
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Center(child: CircularProgressIndicator());
                     }
-
                     if (snapshot.hasError) {
-                      return Center(child: Text('Error: ${snapshot.error}'));
+                      return Center(child: Text("Error loading friend details"));
                     }
-
                     if (!snapshot.hasData || !snapshot.data!.exists) {
-                      return Center(child: Text('Friends not found'));
+                      return Center(child: Text("Friend not found"));
                     }
 
                     var friendData = snapshot.data!.data() as Map<String, dynamic>;
+                    String username = friendData['username'] ?? 'No Name';
                     bool hasUpcomingEvents = friendData['eventIds'] != null && friendData['eventIds'].length > 0;
 
                     return Card(
@@ -428,13 +487,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: ListTile(
                         leading: CircleAvatar(
-                          //*********************SHOULD BE FRIENDS IMAGE
                           backgroundImage: AssetImage('asset/profile.png'),
                         ),
                         title: Text(
-                          friendData['username'],
+                          username,
                           style: const TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
                         ),
+
                         trailing: hasUpcomingEvents
                             ? CircleAvatar(
                           radius: 12,
@@ -445,20 +504,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         )
                             : null,
-                        onTap: () async{
-                          final  isOnline = await connectivityController.isOnline();
-                          if(isOnline) {
-                            print ("USER ID "+ user['uid']);
-                            Navigator.pushNamed(context, "/eventList",
-                                arguments: {
-                                  'userId': friendData['uid'],
-                                  'isLoggedIn': false,
-                                  'currentUserId':user['uid']
-                                });
-                          }
-                          else{
+                        onTap: () async {
+
+                          final isOnline = await connectivityController.isOnline();
+                          if (isOnline) {
+                            Navigator.pushNamed(context, "/eventList", arguments: {
+                              'userId': friendData['uid'],
+                              'isLoggedIn': false,
+                              'currentUserId': user['uid'],
+                            });
+                          } else {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("You can't fetch your friends content while you are offline")),
+                              SnackBar(content: Text("You can't fetch your friends' content while offline")),
                             );
                           }
                         },
@@ -469,6 +526,8 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
           ),
+
+
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -513,7 +572,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       );
                     },
-                   // transitionDuration: const Duration(seconds: 1),
                   ),
                 );
 
