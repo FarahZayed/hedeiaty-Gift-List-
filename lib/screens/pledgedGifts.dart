@@ -24,13 +24,13 @@ class _pledgedGiftsPageState extends State<pledgedGiftsPage> {
 
   Future<void> _fetchPledgedGifts() async {
     try {
-      // Query the 'pledges' collection where the user is the pledgedByUserId
+
       final pledgesSnapshot = await FirebaseFirestore.instance
           .collection('pledges')
           .where('pledgedByUserId', isEqualTo: widget.userId)
           .get();
 
-      // Transform the fetched data
+
       final fetchedPledgedGifts = pledgesSnapshot.docs.map((doc) {
         final data = doc.data();
         return {
@@ -39,7 +39,7 @@ class _pledgedGiftsPageState extends State<pledgedGiftsPage> {
         };
       }).toList();
 
-      // Update the state with the fetched data
+
       setState(() {
         pledgedGifts = fetchedPledgedGifts;
         isLoading = false;

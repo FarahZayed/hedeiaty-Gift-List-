@@ -4,7 +4,6 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:hedieaty/models/eventModel.dart';
 import 'package:hedieaty/models/userModel.dart';
-import 'package:hedieaty/models/giftModel.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:hedieaty/services/connectivityController.dart';
 
@@ -437,7 +436,6 @@ class LocalDatabase {
 // Sync Event to Firestore
   Future<void> _syncEventToFirestore(Event event) async {
     try {
-      print("EVENT location ::"+event.location);
       final eventRef = FirebaseFirestore.instance.collection('event').doc(event.id);
       await eventRef.set(event.toMap(), SetOptions(merge: true));
 

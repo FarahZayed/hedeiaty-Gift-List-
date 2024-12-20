@@ -23,7 +23,7 @@ class Event {
     required this.status,
   });
 
-  // Convert Event to a map for database storage
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -38,7 +38,7 @@ class Event {
     };
   }
 
-  // Convert map retrieved from database to Event
+
   factory Event.fromMap(Map<String, dynamic> map) {
     return Event(
       id: map['id'] ?? '',
@@ -48,7 +48,7 @@ class Event {
       description: map['description'] ?? '',
       userId: map['userId'] ?? '',
       giftIds: map['giftIds'] is String
-          ? List<String>.from(jsonDecode(map['giftIds'])) // Decode JSON string
+          ? List<String>.from(jsonDecode(map['giftIds']))
           : List<String>.from(map['giftIds'] ?? []),
       category: map['category'] ?? '',
       status: map['status'] ?? '',

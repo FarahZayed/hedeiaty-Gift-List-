@@ -43,7 +43,6 @@ class _profilePageState extends State<profilePage> {
         // Update in Firestore
         await firestore.collection('users').doc(user['uid']).update(updatedData);
 
-        // Fetch updated user data
         final updatedSnapshot = await firestore.collection('users').doc(user['uid']).get();
         final updatedUser = updatedSnapshot.data();
 
@@ -67,7 +66,7 @@ class _profilePageState extends State<profilePage> {
           );
         }
       } else {
-        // Save locally for syncing later
+
         final localUserData = {
           ...user,
           ...updatedData,
@@ -97,20 +96,13 @@ class _profilePageState extends State<profilePage> {
   }
 
 
-
-
-
-
-
-
   @override
   Widget build(BuildContext context) {
-   // Map<String,dynamic> user = ModalRoute.of(context)!.settings.arguments as Map<String,dynamic>;
     bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     final TextEditingController userNameController = TextEditingController();
     final TextEditingController phoneController = TextEditingController();
-    //final TextEditingController imageController = TextEditingController();
+
 
     return Scaffold(
       appBar: CustomAppBar(title: "Profile",isDarkMode:  isDarkMode),
@@ -264,7 +256,6 @@ class _profilePageState extends State<profilePage> {
                   title: Text("My Pledged Gifts"),
                   trailing: Icon(Icons.arrow_forward_ios, color: myAppColors.secondaryColor),
                   onTap: () {
-                    // Navigate to My Pledged Gifts Page
                     Navigator.pushNamed(context, "/pledgedGifts", arguments: widget.user['uid']);
                   },
                 ),

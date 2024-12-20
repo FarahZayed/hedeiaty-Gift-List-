@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hedieaty/services/cloudMessaging.dart';
 import 'package:hedieaty/services/connectivityController.dart';
-import 'package:hedieaty/services/firestoreListener.dart';
 import 'package:hedieaty/widgets/colors.dart';
 //pages
 import 'package:hedieaty/screens/eventList.dart';
@@ -14,25 +13,14 @@ import 'package:hedieaty/screens/friendGiftList.dart';
 import 'package:hedieaty/screens/manageEvents.dart';
 import 'package:hedieaty/data/db.dart';
 import 'package:hedieaty/services/syncManager.dart';
-import 'package:hedieaty/services/cloudMessaging.dart';
 
 //firebase
 import 'package:firebase_core/firebase_core.dart';
 import 'data/firebase_options.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
-//connectivity
-import 'package:connectivity_plus/connectivity_plus.dart';
 
 //shared Preference
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Handle background notifications
-  print("Handling a background message: ${message.messageId}");
-  print("Handling a background message: ${message.notification?.title}");
-}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,28 +46,14 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   ThemeMode _themeMode = ThemeMode.system;
-  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    //_initializeApp();
+
   }
 
-  // Future<void> _initializeApp() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   final userId = prefs.getString('userId');
-  //   print("Logged-in userId: $userId");
-  //
-  //   if (userId != null) {
-  //     setState(() {
-  //       _currentUserId = userId;
-  //     });
-  //
-  //
-  //   }
-  // }
 
   @override
   void dispose() {
@@ -106,7 +80,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (isConnected) {
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('userId');
-      print("userid::" + userId.toString());
       await SyncManager().syncAllUnsyncedData(userId.toString());
     }
   }
@@ -119,15 +92,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    // if (_currentUserId == null) {
-    //   return MaterialApp(
-    //     home: Scaffold(
-    //       body: Center(
-    //         child: CircularProgressIndicator(),
-    //       ),
-    //     ),
-    //   );
-    // }
 
     return MaterialApp(
       title: 'Hedieaty',

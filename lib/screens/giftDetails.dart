@@ -154,34 +154,9 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
 
 
 
-  // Future<void> _uploadImage() async {
-  //   try {
-  //     if (_imageFile != null) {
-  //       String fileName = 'gifts/${DateTime.now().millisecondsSinceEpoch}.png';
-  //       Reference ref = FirebaseStorage.instance.ref().child(fileName);
-  //       UploadTask uploadTask = ref.putFile(_imageFile!);
-  //
-  //       TaskSnapshot taskSnapshot = await uploadTask;
-  //       String downloadUrl = await taskSnapshot.ref.getDownloadURL();
-  //
-  //       setState(() {
-  //         _uploadedImageUrl = downloadUrl;
-  //       });
-  //
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(content: Text("Image uploaded successfully!")),
-  //       );
-  //     }
-  //   } catch (e) {
-  //     print("Error uploading image: $e");
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       SnackBar(content: Text("Error uploading image: $e")),
-  //     );
-  //   }
-  // }
+
 
   Future<String> _uploadImageToImgur(String imagePath) async {
-    print("UPLOAD IMAGE TO IMGUR");
     const clientId = '6035c0610d863f1';
     final uri = Uri.parse('https://api.imgur.com/3/image');
     final request = http.MultipartRequest('POST', uri);
@@ -298,7 +273,7 @@ class _GiftDetailsPageState extends State<GiftDetailsPage> {
                         );
                       }
                     }
-                    print("URL IN DETAILS::"+_uploadedImageUrl!);
+
                     Navigator.pop(context, {
                       'name': nameController.text.trim(),
                       'category': categoryController.text.trim(),

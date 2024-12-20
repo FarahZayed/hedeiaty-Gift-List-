@@ -29,8 +29,8 @@ class UserlocalDB {
       'username': username,
       'email': email,
       'phone': phone,
-      'friendIds': jsonEncode(friendIds), // Convert list to JSON string
-      'eventIds': jsonEncode(eventIds),   // Convert list to JSON string
+      'friendIds': jsonEncode(friendIds),
+      'eventIds': jsonEncode(eventIds),
       'photoURL': photoURL,
       'pendingSync': pendingSync,
       'fcmToken':fcmToken
@@ -46,10 +46,10 @@ class UserlocalDB {
       email: map['email'] ?? '',
       phone: map['phone'] ?? '',
       friendIds: map['friendIds'] is String
-          ? List<String>.from(jsonDecode(map['friendIds'])) // Decode JSON string
+          ? List<String>.from(jsonDecode(map['friendIds']))
           : List<String>.from(map['friendIds'] ?? []),
       eventIds: map['eventIds'] is String
-          ? List<String>.from(jsonDecode(map['eventIds'])) // Decode JSON string
+          ? List<String>.from(jsonDecode(map['eventIds']))
           : List<String>.from(map['eventIds'] ?? []),
       photoURL: map['photoURL'] ?? '',
       pendingSync: map['pendingSync'] ?? 0,

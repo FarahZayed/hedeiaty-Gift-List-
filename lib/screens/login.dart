@@ -30,17 +30,7 @@ class _loginPageState extends State<loginPage> {
 
   bool isLogin = false;
   bool isSignup = false;
-  // File? profileImage;
-  //
-  // Future<void> _pickImage() async {
-  //   final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-  //
-  //   if (pickedFile != null) {
-  //     setState(() {
-  //       profileImage = File(pickedFile.path);
-  //     });
-  //   }
-  // }
+
   Future<void> saveFCMToken(String userId) async {
     final token = await FirebaseMessaging.instance.getToken();
     if (token != null) {
@@ -79,8 +69,7 @@ class _loginPageState extends State<loginPage> {
 
           await saveFCMToken(data['uid']);
           FirestoreListener.listenForPledges(data['uid']);
-          print(data.toString());
-          print("go to home");
+
           Navigator.pushReplacementNamed(context, "/home", arguments: data);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -161,261 +150,6 @@ class _loginPageState extends State<loginPage> {
   }
 
 
-  // void _showSignUpModal() {
-  //   showModalBottomSheet(
-  //     context: context,
-  //     isScrollControlled: true,
-  //     shape: const RoundedRectangleBorder(
-  //       borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-  //     ),
-  //     builder: (BuildContext context) {
-  //       return Padding(
-  //         padding: EdgeInsets.only(
-  //           left: 24.0,
-  //           right: 24.0,
-  //           top: 16.0,
-  //           bottom: MediaQuery.of(context).viewInsets.bottom + 16.0,
-  //         ),
-  //         child: Column(
-  //           mainAxisSize: MainAxisSize.min,
-  //           children: [
-  //             const Text(
-  //               "Sign Up",
-  //               style: TextStyle(
-  //                 fontSize: 26.0,
-  //                 fontWeight: FontWeight.w600,
-  //                 color: myAppColors.darkBlack,
-  //               ),
-  //             ),
-  //             const SizedBox(height: 16.0),
-  //             GestureDetector(
-  //               onTap: _pickImage,
-  //               child: CircleAvatar(
-  //                 radius: 50.0,
-  //                 backgroundImage: profileImage != null
-  //                     ? FileImage(profileImage!)
-  //                     : const AssetImage("asset/profile.png") as ImageProvider,
-  //                 child: profileImage == null
-  //                     ? const Icon(Icons.add_a_photo, size: 30, color: Colors.white)
-  //                     : null,
-  //               ),
-  //             ),
-  //             const SizedBox(height: 16.0),
-  //             _buildTextField(controller: usernameController, label: "Username", icon: Icons.person),
-  //             const SizedBox(height: 16.0),
-  //             _buildTextField(controller: emailController, label: "Email", icon: Icons.email),
-  //             const SizedBox(height: 16.0),
-  //             _buildTextField(controller: passwordController, label: "Password", icon: Icons.lock, isPassword: true),
-  //             const SizedBox(height: 24.0),
-  //             ElevatedButton(
-  //               onPressed: _signUp,
-  //               style: ElevatedButton.styleFrom(
-  //                 padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 16.0),
-  //                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-  //                 backgroundColor: myAppColors.primColor,
-  //               ),
-  //               child: const Text(
-  //                 "Sign Up",
-  //                 style: TextStyle(fontSize: 18.0, color: Colors.white),
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
-
-
-  // Widget _buildTextField({
-  //   required TextEditingController controller,
-  //   required String label,
-  //   required IconData icon,
-  //   bool isPassword = false,
-  // }) {
-  //   return TextField(
-  //     controller: controller,
-  //     obscureText: isPassword,
-  //     decoration: InputDecoration(
-  //       labelText: label,
-  //       labelStyle: const TextStyle(color: myAppColors.darkBlack),
-  //       filled: true,
-  //       fillColor: Colors.grey.withOpacity(0.1),
-  //       border: OutlineInputBorder(
-  //         borderRadius: BorderRadius.circular(12.0),
-  //         borderSide: BorderSide.none,
-  //       ),
-  //       prefixIcon: Icon(icon, color: myAppColors.darkBlack),
-  //     ),
-  //   );
-  // }
-
-  // @override
-  // Widget build(BuildContext context) {
-  //   return Scaffold(
-  //     body: Stack(
-  //       children: [
-  //         Container(
-  //           decoration: const BoxDecoration(
-  //             image: DecorationImage(
-  //               image: AssetImage('asset/login-background.png'),
-  //               fit: BoxFit.cover,
-  //             ),
-  //           ),
-  //           child: BackdropFilter(
-  //             filter: ImageFilter.blur(sigmaX: 2, sigmaY:2),
-  //             child: Container(
-  //               color: myAppColors.darkBlack.withOpacity(0.3),
-  //             ),
-  //           ),
-  //         ),
-  //         // Login Form Container
-  //         Align(
-  //           alignment: Alignment.bottomCenter,
-  //           child: Padding(
-  //             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-  //             child: Container(
-  //               padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
-  //               decoration: BoxDecoration(
-  //                 color: Colors.white.withOpacity(0.9),
-  //                 borderRadius: BorderRadius.circular(24.0),
-  //                 boxShadow: [
-  //                   BoxShadow(
-  //                     color: Colors.black.withOpacity(0.15),
-  //                     blurRadius: 10.0,
-  //                     offset: Offset(0, 5),
-  //                   ),
-  //                 ],
-  //               ),
-  //               child: Column(
-  //                 mainAxisSize: MainAxisSize.min,
-  //                 children: [
-  //                   if (!isLogin) ...[
-  //                     const Text(
-  //                       "Welcome to Hedieaty",
-  //                       style: TextStyle(
-  //                         fontSize: 26.0,
-  //                         fontWeight: FontWeight.w600,
-  //                         color: myAppColors.darkBlack,
-  //                       ),
-  //                     ),
-  //                     const SizedBox(height: 16.0),
-  //                     ElevatedButton(
-  //                       onPressed: () {
-  //                         setState(() {
-  //                           isLogin = true;
-  //                         });
-  //                       },
-  //                       style: ElevatedButton.styleFrom(
-  //                         padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 16.0),
-  //                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-  //                         elevation: 5.0,
-  //                         backgroundColor: myAppColors.primColor,
-  //                       ),
-  //                       child: const Text(
-  //                         "Get started",
-  //                         style: TextStyle(fontSize: 18.0, color: myAppColors.darkBlack),
-  //                       ),
-  //                     ),
-  //                     const SizedBox(height: 20.0),
-  //                   ],
-  //                   if (isLogin) ...[
-  //                     const Text(
-  //                       'Logining In',
-  //                       style: TextStyle(
-  //                         fontSize: 28.0,
-  //                         fontWeight: FontWeight.bold,
-  //                         color: myAppColors.darkBlack,
-  //                       ),
-  //                     ),
-  //                     const SizedBox(height: 16.0),
-  //                     // Email Field
-  //                     TextField(
-  //                       controller: emailController,
-  //                       decoration: InputDecoration(
-  //                         labelText: 'Email',
-  //                         labelStyle: const TextStyle(color: myAppColors.darkBlack),
-  //                         filled: true,
-  //                         fillColor: Colors.grey.withOpacity(0.1),
-  //                         border: OutlineInputBorder(
-  //                           borderRadius: BorderRadius.circular(12.0),
-  //                           borderSide: BorderSide.none,
-  //                         ),
-  //                         prefixIcon: const Icon(Icons.email, color: myAppColors.darkBlack),
-  //                       ),
-  //                     ),
-  //                     const SizedBox(height: 16.0),
-  //                     // Password Field
-  //                     TextField(
-  //                       controller: passwordController,
-  //                       decoration: InputDecoration(
-  //                         labelText: 'Password',
-  //                         labelStyle: const TextStyle(color: myAppColors.darkBlack),
-  //                         filled: true,
-  //                         fillColor: Colors.grey.withOpacity(0.1),
-  //                         border: OutlineInputBorder(
-  //                           borderRadius: BorderRadius.circular(12.0),
-  //                           borderSide: BorderSide.none,
-  //                         ),
-  //                         prefixIcon: const Icon(Icons.lock, color: myAppColors.darkBlack),
-  //                       ),
-  //                       obscureText: true,
-  //                     ),
-  //                     const SizedBox(height: 24.0),
-  //                     // Login Button with Gradient
-  //                     Container(
-  //                       decoration: BoxDecoration(
-  //                         gradient: LinearGradient(
-  //                           colors: [myAppColors.primColor, myAppColors.secondaryColor],
-  //                           begin: Alignment.topLeft,
-  //                           end: Alignment.bottomRight,
-  //                         ),
-  //                         borderRadius: BorderRadius.circular(20.0),
-  //                       ),
-  //                       child: ElevatedButton(
-  //                         onPressed: _logIn,
-  //                         style: ElevatedButton.styleFrom(
-  //                           padding: const EdgeInsets.symmetric(horizontal: 50.0, vertical: 16.0),
-  //                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-  //                           elevation: 5.0,
-  //                           backgroundColor: myAppColors.primColor,
-  //                         ),
-  //                         child: const Text(
-  //                           'Login',
-  //                           style: TextStyle(color: Colors.white, fontSize: 18.0),
-  //                         ),
-  //                       ),
-  //                     ),
-  //                     const SizedBox(height: 20.0),
-  //                     // Signup Option
-  //                     GestureDetector(
-  //                       onTap: () {
-  //                         _showSignUpModal();
-  //                       },
-  //                       child: const Text(
-  //                         'Don\'t have an account? Sign up',
-  //                         style: TextStyle(
-  //                           color: myAppColors.primColor,
-  //                           decoration: TextDecoration.underline,
-  //                           fontSize: 16.0,
-  //                         ),
-  //                       ),
-  //                     ),
-  //
-  //                   ],
-  //                 ],
-  //               ),
-  //             ),
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -437,7 +171,6 @@ class _loginPageState extends State<loginPage> {
             ),
           ),
 
-          // Animated Login/Signup Form
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(

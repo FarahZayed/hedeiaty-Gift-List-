@@ -45,6 +45,7 @@ class _giftListPageState extends State<giftList> {
         final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.userId).get();
 
         if (userDoc.exists) {
+          print(userDoc.data().toString());
           List<String> eventIds = List<String>.from(userDoc.data()?['eventIds'] ?? []);
           List<Map<String, dynamic>> allGifts = [];
 
@@ -466,7 +467,6 @@ class _giftListPageState extends State<giftList> {
 
         );
       } else {
-        print("URL:: "+ result['image']);
         await addGift(
           result['name'],
           result['category'],

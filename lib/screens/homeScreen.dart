@@ -27,13 +27,11 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool isDarkMode = false;
- // final TextEditingController _searchController = TextEditingController();
   final TextEditingController _nameOfFriend = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  // List<dynamic> filteredFriendsIds = [];
-  // List<dynamic> friendsIds = [];
+
   late TextEditingController _searchController;
   late List<dynamic> friendsIds;
   late List<dynamic> filteredFriendsIds;
@@ -97,7 +95,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     });
   }
-
 
 
   void _addFriendManually(String currentUserId, List<dynamic> friendsIds) {
@@ -174,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         // Update local state
                         setState(() {
-                          friendsIds.add(friendId);
+                          filteredFriendsIds.add(friendId);
                         });
 
                         // Show success Snackbar using the parent context
@@ -221,9 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> addEvent(String userId,String name, String category, String status, DateTime date, String location ,String description) async {
     try {
-      print("ADD EVENT");
       final Uuid uuid = Uuid();
-      print("Received date: ${date}");
 
       bool online = await connectivityController.isOnline();
       final newEvent = Event(
@@ -464,7 +459,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       .doc(filteredFriendsIds[index])
                       .get(),
                   builder: (context, snapshot) {
-                    print("idss:: "+ filteredFriendsIds.toString());
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Center(child: CircularProgressIndicator());
                     }

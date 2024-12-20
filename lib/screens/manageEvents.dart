@@ -53,7 +53,7 @@ class _ManageEventsPageState extends State<ManageEventsPage> {
     if (widget.event != null) {
       nameController.text = widget.event!['name'];
       categoryController.text = widget.event!['category'];
-     // statusController.text = widget.event!['status'];
+
       dateController.text = widget.event!['date'];
       locationController.text = widget.event!['location'] ?? '';
       descriptionController.text = widget.event!['description'] ?? '';
